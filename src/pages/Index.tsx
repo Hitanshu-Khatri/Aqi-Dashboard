@@ -141,7 +141,7 @@ const Index = () => {
     fetchSensorData();
     const interval = setInterval(fetchSensorData, refreshInterval);
     return () => clearInterval(interval);
-  }, [esp32IP, refreshInterval]);
+  }, [esp32IP, refreshInterval, ismockdata]);
 
   const handleGoogleMapsApiKeyChange = (apiKey: string) => {
     setGoogleMapsApiKey(apiKey);
