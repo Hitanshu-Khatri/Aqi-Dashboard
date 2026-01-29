@@ -13,7 +13,7 @@ const queryClient = new QueryClient();
 
 
 
-const SKIP_LOGIN = false; // Set to true to skip login (temporary dev bypass)
+const SKIP_LOGIN = true; // Set to true to skip login (temporary dev bypass)
 
 const App = () => {
   const { user: realUser, loading } = useAuth();

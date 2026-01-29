@@ -27,9 +27,9 @@ export const AQIBadge: React.FC<AQIBadgeProps> = ({ level, color }) => {
   };
 
   return (
-    <div className={`inline-flex items-center px-3 py-1.5 rounded-full border backdrop-blur-sm font-medium text-sm ${getBadgeStyle(level)}`}>
-      <div className={`w-2 h-2 rounded-full mr-2 ${color.replace('text-', 'bg-')}`} />
-      {level}
+    <div className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border backdrop-blur-sm font-medium text-xs sm:text-sm ${getBadgeStyle(level)}`}>
+      <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1.5 sm:mr-2 ${color.replace('text-', 'bg-')}`} />
+      <span className="truncate max-w-[200px] sm:max-w-none">{level}</span>
     </div>
   );
 };

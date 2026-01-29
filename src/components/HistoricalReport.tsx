@@ -50,15 +50,15 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[] }> = 
   };
 
   const MetricSummary = ({ title, current, trend }: { title: string; current: number; trend: ReturnType<typeof getMetricTrend> }) => (
-    <div className="flex items-center justify-between p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+    <div className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
       <div>
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-xl font-semibold">{current}</p>
+        <p className="text-xs sm:text-sm text-muted-foreground">{title}</p>
+        <p className="text-lg sm:text-xl font-semibold">{current}</p>
       </div>
-      <div className="flex items-center gap-1 text-sm">
-        {trend.trend === 'up' && <TrendingUp className="h-4 w-4 text-red-400" />}
-        {trend.trend === 'down' && <TrendingDown className="h-4 w-4 text-green-400" />}
-        {trend.trend === 'stable' && <Minus className="h-4 w-4 text-gray-400" />}
+      <div className="flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm">
+        {trend.trend === 'up' && <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-red-400" />}
+        {trend.trend === 'down' && <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-green-400" />}
+        {trend.trend === 'stable' && <Minus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />}
         <span className={trend.trend === 'up' ? 'text-red-400' : trend.trend === 'down' ? 'text-green-400' : 'text-gray-400'}>
           {trend.percentage}%
         </span>
@@ -69,14 +69,15 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[] }> = 
   const latestData = historicalData[historicalData.length - 1];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Date Selection */}
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-2 sm:gap-4 items-center">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="glass-button">
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
+            <Button variant="outline" className="glass-button text-xs sm:text-sm">
+              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">{selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}</span>
+              <span className="sm:hidden">{selectedDate ? format(selectedDate, 'MMM dd') : 'Date'}</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -91,9 +92,9 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[] }> = 
       </div>
 
       {/* Metrics Summary */}
-      <Card className="glass-card p-6">
-        <h3 className="text-xl font-semibold mb-4">7-Day Trends</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <Card className="glass-card p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">7-Day Trends</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <MetricSummary title="AQI" current={latestData.aqi} trend={getMetricTrend('aqi')} />
           <MetricSummary title="Temperature (°C)" current={latestData.temperature} trend={getMetricTrend('temperature')} />
           <MetricSummary title="Humidity (%)" current={latestData.humidity} trend={getMetricTrend('humidity')} />
@@ -103,26 +104,26 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[] }> = 
       </Card>
 
       {/* Historical Chart */}
-      <Card className="glass-card p-6">
-        <h3 className="text-xl font-semibold mb-4">AQI History (Last 7 Days)</h3>
-        <div className="h-80">
+      <Card className="glass-card p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">AQI History (Last 7 Days)</h3>
+        <div className="h-64 sm:h-80">
           <AQIChart data={chartData} />
         </div>
       </Card>
 
       {/* Analytics Summary */}
-      <Card className="glass-card p-6">
-        <h3 className="text-xl font-semibold mb-4">Analytics Summary</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Card className="glass-card p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Analytics Summary</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
-            <h4 className="font-medium mb-2">Best Air Quality Day</h4>
-            <p className="text-muted-foreground">
+            <h4 className="text-sm sm:text-base font-medium mb-2">Best Air Quality Day</h4>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {format(new Date(historicalData.reduce((min, item) => item.aqi < min.aqi ? item : min).date), 'PPP')}
             </p>
           </div>
           <div>
-            <h4 className="font-medium mb-2">Average AQI (30 days)</h4>
-            <p className="text-muted-foreground">
+            <h4 className="text-sm sm:text-base font-medium mb-2">Average AQI (30 days)</h4>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {Math.round(historicalData.reduce((sum, item) => sum + item.aqi, 0) / historicalData.length)}
             </p>
           </div>

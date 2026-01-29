@@ -276,23 +276,23 @@ export const GoogleMapComponent: React.FC<GoogleMapComponentProps> = ({
 
   if (!apiKey) {
     return (
-      <div className="w-full h-64 bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl flex items-center justify-center border border-white/10">
-        <div className="text-center space-y-4 p-6">
-          <h3 className="text-lg font-semibold text-white">Google Maps Integration</h3>
-          <p className="text-sm text-muted-foreground">Enter your Google Maps API key to enable the map</p>
-          <div className="flex gap-2 max-w-md">
+      <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl flex items-center justify-center border border-white/10 p-4">
+        <div className="text-center space-y-3 sm:space-y-4 max-w-full">
+          <h3 className="text-base sm:text-lg font-semibold text-white">Google Maps Integration</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground px-2">Enter your Google Maps API key to enable the map</p>
+          <div className="flex flex-col sm:flex-row gap-2 w-full max-w-md mx-auto px-4">
             <Input
               type="text"
               placeholder="Enter Google Maps API Key"
               value={tempApiKey}
               onChange={(e) => setTempApiKey(e.target.value)}
-              className="flex-1"
+              className="flex-1 text-xs sm:text-sm"
             />
-            <Button onClick={handleApiKeySubmit} size="sm">
+            <Button onClick={handleApiKeySubmit} size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
               Load Map
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[10px] sm:text-xs text-muted-foreground px-2">
             Get your API key from{' '}
             <a 
               href="https://console.cloud.google.com/google/maps-apis" 
@@ -309,12 +309,12 @@ export const GoogleMapComponent: React.FC<GoogleMapComponentProps> = ({
   }
 
   return (
-    <div className="w-full h-64 rounded-xl overflow-hidden border border-white/10 relative">
+    <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 relative">
       {!isScriptLoaded && (
         <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-700 flex items-center justify-center">
           <div className="text-center space-y-2">
-            <div className="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-sm text-muted-foreground">Loading Google Maps...</p>
+            <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-xs sm:text-sm text-muted-foreground">Loading Google Maps...</p>
           </div>
         </div>
       )}
