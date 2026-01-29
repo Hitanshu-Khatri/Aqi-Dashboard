@@ -6,23 +6,38 @@ import {
 import { auth } from "./firebase";
 
 
+
 export default function AuthModal({ open, onClose }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignup, setIsSignup] = useState(false);
   const [error, setError] = useState("");
 
+  // Clear state when modal closes
+  const handleClose = () => {
+    setEmail("");
+    setPassword("");
+    setIsSignup(false);
+    setError("");
+    onClose();
+  };
+
   if (!open) return null;
 
   const submit = async () => {
     setError("");
+    // Guard: only call Firebase Auth if auth is a valid instance (has .app property)
+    if (!auth || typeof auth !== "object" || !('app' in auth)) {
+      setError("Authentication is not available. Please check your Firebase configuration.");
+      return;
+    }
     try {
       if (isSignup) {
         await createUserWithEmailAndPassword(auth, email, password);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
-      onClose();
+      handleClose();
     } catch (err) {
       setError(err.message);
     }
@@ -31,7 +46,7 @@ export default function AuthModal({ open, onClose }) {
   return (
     <div style={overlay}>
       <div style={modal}>
-        <button style={closeBtn} onClick={onClose} aria-label="Close">×</button>
+        <button style={closeBtn} onClick={handleClose} aria-label="Close">×</button>
         <h2 style={title}>{isSignup ? "Sign up" : "Login"}</h2>
         <div style={{ marginBottom: 24 }}>
           <input

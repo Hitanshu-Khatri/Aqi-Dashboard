@@ -8,5 +8,19 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+let app, auth;
+if (
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.appId
+) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+} else {
+  // Dummy fallback for SKIP_LOGIN mode
+  app = null;
+  auth = {};
+}
+
+export { app, auth };
