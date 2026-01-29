@@ -18,6 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@radix-ui/react-tooltip';
 
+
+import { useAuth } from "../AuthContext.jsx";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
+
 interface SensorData {
   aqi: number;
   temperature: number;
@@ -36,7 +41,13 @@ interface HistoricalData {
   pm10: number;
 }
 
-const Index = () => {
+interface IndexProps {
+  user?: any;
+}
+
+const Index = (props: IndexProps) => {
+  const context = useAuth();
+  const user = props.user !== undefined ? props.user : context.user;
   const [sensorData, setSensorData] = useState<SensorData>({
     aqi: 0,
     temperature: 0,
@@ -131,6 +142,7 @@ const Index = () => {
     fetchSensorData();
   };
 
+
   useEffect(() => {
     // If no env-provided key, load Google Maps API key from localStorage (allows runtime entry)
     if (!envGoogleMapsKey) {
@@ -138,10 +150,24 @@ const Index = () => {
       if (savedApiKey) setGoogleMapsApiKey(savedApiKey);
     }
 
-    fetchSensorData();
-    const interval = setInterval(fetchSensorData, refreshInterval);
-    return () => clearInterval(interval);
-  }, [esp32IP, refreshInterval, ismockdata]);
+    if (user) {
+      fetchSensorData();
+      const interval = setInterval(fetchSensorData, refreshInterval);
+      return () => clearInterval(interval);
+    }
+    // If user logs out, clear chart and sensor data
+    setChartData([]);
+    setHistoricalData([]);
+    setSensorData({
+      aqi: 0,
+      temperature: 0,
+      humidity: 0,
+      pm2_5: 0,
+      pm10: 0,
+      timestamp: new Date().toISOString()
+    });
+    // eslint-disable-next-line
+  }, [esp32IP, refreshInterval, ismockdata, user]);
 
   const handleGoogleMapsApiKeyChange = (apiKey: string) => {
     setGoogleMapsApiKey(apiKey);
@@ -190,6 +216,30 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {user ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={async () => { await signOut(auth); }}
+                className="glass-button"
+                style={{ marginRight: 8 }}
+              >
+                Sign Out
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  // Dispatch a custom event to open AuthModal in App
+                  window.dispatchEvent(new CustomEvent("open-auth-modal"));
+                }}
+                className="glass-button"
+                style={{ marginRight: 8 }}
+              >
+                Sign In
+              </Button>
+            )}
             <ShareReportButton
               sensorData={sensorData}
               location={userLocation ? (userLocation.name ?? `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`) : undefined}
