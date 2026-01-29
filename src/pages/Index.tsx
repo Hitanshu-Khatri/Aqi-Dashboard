@@ -190,39 +190,38 @@ const Index = (props: IndexProps) => {
   }
 
   return (
-    <div className="min-h-screen p-3 md:p-6 lg:p-8">
-      <div className="max-w-8xl mx-auto space-y-6">
+    <div className="min-h-screen p-2 sm:p-4 md:p-6 lg:p-8">
+      <div className="max-w-8xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Air Quality Monitor
               </h1>
               {isOffline ? (
-                <WifiOff className="h-5 w-5 text-red-500" />
+                <WifiOff className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 flex-shrink-0" />
               ) : (
-                <Wifi className="h-5 w-5 text-green-500" />
+                <Wifi className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
               )}
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
               <p className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Real-time monitoring from ESP32 sensor
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">Real-time monitoring from ESP32 sensor</span>
               </p>
-              <p className="text-xs">
+              <p className="text-xs truncate">
                 Last updated: {new Date(sensorData.timestamp).toLocaleString()}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {user ? (
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={async () => { await signOut(auth); }}
-                className="glass-button"
-                style={{ marginRight: 8 }}
+                className="glass-button text-xs sm:text-sm"
               >
                 Sign Out
               </Button>
@@ -234,8 +233,7 @@ const Index = (props: IndexProps) => {
                   // Dispatch a custom event to open AuthModal in App
                   window.dispatchEvent(new CustomEvent("open-auth-modal"));
                 }}
-                className="glass-button"
-                style={{ marginRight: 8 }}
+                className="glass-button text-xs sm:text-sm"
               >
                 Sign In
               </Button>
@@ -248,11 +246,12 @@ const Index = (props: IndexProps) => {
               variant={ismockdata ? 'default' : 'outline'}
               size="sm"
               onClick={() => setismockdata(prev => !prev)}
-              className={`glass-button ${ismockdata ? 'ring-2 ring-green-400' : ''}`}
+              className={`glass-button text-xs sm:text-sm ${ismockdata ? 'ring-2 ring-green-400' : ''}`}
               aria-pressed={ismockdata}
               disabled={isLoading}
             >
-              {ismockdata ? 'Mock: On' : 'Mock Data'}
+              <span className="hidden sm:inline">{ismockdata ? 'Mock: On' : 'Mock Data'}</span>
+              <span className="sm:hidden">Mock</span>
             </Button>
             <Button
               variant="outline"
@@ -261,31 +260,31 @@ const Index = (props: IndexProps) => {
               disabled={isLoading}
               className="glass-button"
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
             <ThemeToggle />
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={() => setSettingsOpen(true)}
-              className="glass-button"
+              className="glass-button p-2"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="dashboard">Live Dashboard</TabsTrigger>
-            <TabsTrigger value="history">Historical Reports</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-full sm:max-w-md">
+            <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Live Dashboard</TabsTrigger>
+            <TabsTrigger value="history" className="text-xs sm:text-sm">Historical Reports</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-6">
+          <TabsContent value="dashboard" className="space-y-4 md:space-y-6">
             {/* Main AQI Display */}
-            <Card className={`glass-card p-6 lg:p-8 ${isOffline ? 'opacity-60' : ''}`}>
-              <div className="text-center space-y-6">
+            <Card className={`glass-card p-4 sm:p-6 lg:p-8 ${isOffline ? 'opacity-60' : ''}`}>
+              <div className="text-center space-y-4 md:space-y-6">
                 <div className="relative inline-block">
                   <div className="relative">
                     <TooltipProvider>
@@ -295,16 +294,16 @@ const Index = (props: IndexProps) => {
                             <CircularProgress
                               value={sensorData.aqi}
                               max={300}
-                              size={180}
-                              strokeWidth={12}
+                              size={window.innerWidth < 640 ? 140 : 180}
+                              strokeWidth={window.innerWidth < 640 ? 10 : 12}
                               color={aqiInfo.color}
                               showGlow={!isLoading && !isOffline}
                             >
                               <div className="text-center">
-                                <div className={`text-4xl lg:text-5xl font-bold ${aqiInfo.color} ${isLoading ? 'animate-pulse' : ''}`}>
+                                <div className={`text-3xl sm:text-4xl lg:text-5xl font-bold ${aqiInfo.color} ${isLoading ? 'animate-pulse' : ''}`}>
                                   {isLoading ? '---' : sensorData.aqi}
                                 </div>
-                                <div className="text-sm text-muted-foreground mt-2">AQI</div>
+                                <div className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">AQI</div>
                               </div>
                             </CircularProgress>
                           </div>
@@ -378,26 +377,26 @@ const Index = (props: IndexProps) => {
             </div>
 
             {/* Chart and Map */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <Card className={`glass-card p-6 ${isOffline ? 'opacity-60' : ''}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold">AQI Trend</h3>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
+              <Card className={`glass-card p-4 sm:p-6 ${isOffline ? 'opacity-60' : ''}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <h3 className="text-lg sm:text-xl font-semibold">AQI Trend</h3>
                   <div className="text-xs text-muted-foreground">
                     Last {chartData.length} readings
                   </div>
                 </div>
-                <div className="h-80">
+                <div className="h-64 sm:h-80">
                   <AQIChart data={chartData} />
                 </div>
               </Card>
-              <Card className="glass-card p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold">Sensor Location</h3>
+              <Card className="glass-card p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <h3 className="text-lg sm:text-xl font-semibold">Sensor Location</h3>
                   <div className="text-xs text-muted-foreground">
                     Live monitoring point
                   </div>
                 </div>
-                <div className="h-80">
+                <div className="h-64 sm:h-80">
                   <GoogleMapComponent
                     aqi={sensorData.aqi}
                     apiKey={googleMapsApiKey}

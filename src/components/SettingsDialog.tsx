@@ -53,29 +53,29 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card border-white/20 max-w-md">
+      <DialogContent className="glass-card border-white/20 max-w-[95vw] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Dashboard Settings</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl font-semibold">Dashboard Settings</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="esp32-ip" className="text-sm font-medium">ESP32 IP Address</Label>
+        <div className="space-y-4 sm:space-y-6 py-3 sm:py-4">
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label htmlFor="esp32-ip" className="text-xs sm:text-sm font-medium">ESP32 IP Address</Label>
             <Input
               id="esp32-ip"
               value={ip}
               onChange={(e) => setIp(e.target.value)}
               placeholder="192.168.1.100"
-              className="bg-white/5 border-white/20 focus:border-blue-400/50"
+              className="bg-white/5 border-white/20 focus:border-blue-400/50 text-sm"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               Enter the IP address of your ESP32 device for real-time data.
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="refresh-interval" className="text-sm font-medium">Refresh Interval</Label>
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label htmlFor="refresh-interval" className="text-xs sm:text-sm font-medium">Refresh Interval</Label>
             <Select value={interval.toString()} onValueChange={(value) => setInterval(parseInt(value))}>
-              <SelectTrigger className="bg-white/5 border-white/20">
+              <SelectTrigger className="bg-white/5 border-white/20 text-sm">
                 <SelectValue placeholder="Select refresh rate" />
               </SelectTrigger>
               <SelectContent>
@@ -87,16 +87,16 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 <SelectItem value="60000">1 minute</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               How often to fetch new data from the sensor.
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Data Export</Label>
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label className="text-xs sm:text-sm font-medium">Data Export</Label>
             <Button 
               variant="outline" 
-              className="w-full glass-button"
+              className="w-full glass-button text-xs sm:text-sm"
               onClick={() => {
                 toast({
                   title: "Export Feature",
@@ -106,20 +106,20 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             >
               Export Current Data
             </Button>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               Download current readings as CSV or PDF report.
             </p>
           </div>
         </div>
-        <div className="flex justify-between gap-3">
-          <Button variant="outline" onClick={handleReset} className="glass-button">
+        <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-3">
+          <Button variant="outline" onClick={handleReset} className="glass-button text-xs sm:text-sm w-full sm:w-auto">
             Reset to Default
           </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex gap-2 flex-1 sm:flex-initial">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-initial text-xs sm:text-sm">
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
+            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 flex-1 sm:flex-initial text-xs sm:text-sm">
               Save Changes
             </Button>
           </div>

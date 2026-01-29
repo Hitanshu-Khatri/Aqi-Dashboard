@@ -79,15 +79,15 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Card className={`glass-card p-6 hover:bg-white/15 transition-all duration-300 transform hover:scale-105 hover:shadow-xl group cursor-pointer ${isOffline ? 'opacity-60 grayscale' : ''}`}>
-            <div className="flex flex-col items-center space-y-4">
+          <Card className={`glass-card p-3 sm:p-4 md:p-6 hover:bg-white/15 transition-all duration-300 transform hover:scale-105 hover:shadow-xl group cursor-pointer ${isOffline ? 'opacity-60 grayscale' : ''}`}>
+            <div className="flex flex-col items-center space-y-2 sm:space-y-3 md:space-y-4">
               {/* Header with icon and title */}
-              <div className="flex items-center gap-3 w-full justify-center">
-                <div className={`p-2.5 rounded-xl bg-gradient-to-br from-white/10 to-white/5 ${color} group-hover:scale-110 group-hover:shadow-lg transition-all duration-300`}>
-                  <IconComponent className="h-5 w-5" />
+              <div className="flex items-center gap-2 sm:gap-3 w-full justify-center">
+                <div className={`p-1.5 sm:p-2 md:p-2.5 rounded-xl bg-gradient-to-br from-white/10 to-white/5 ${color} group-hover:scale-110 group-hover:shadow-lg transition-all duration-300`}>
+                  <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground font-medium">{title}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">{title}</p>
                   <p className={`text-xs font-medium ${healthStatus.color}`}>
                     {healthStatus.status}
                   </p>
@@ -99,25 +99,25 @@ export const MetricCard: React.FC<MetricCardProps> = ({
                 <CircularProgress
                   value={isLoading ? 0 : value}
                   max={maxValue}
-                  size={100}
-                  strokeWidth={6}
+                  size={window.innerWidth < 640 ? 80 : window.innerWidth < 1024 ? 90 : 100}
+                  strokeWidth={window.innerWidth < 640 ? 5 : 6}
                   color={color}
                   showGlow={!isLoading && !isOffline}
                 >
                   <div className="text-center">
-                    <div className={`text-xl font-bold ${color} ${isLoading ? 'animate-pulse' : ''} transition-all duration-500`}>
+                    <div className={`text-base sm:text-lg md:text-xl font-bold ${color} ${isLoading ? 'animate-pulse' : ''} transition-all duration-500`}>
                       {isLoading ? '--' : value}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">{unit}</div>
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">{unit}</div>
                   </div>
                 </CircularProgress>
               </div>
 
               {/* Mini trend indicator */}
               <div className="w-full">
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <div className="flex justify-between items-center text-[10px] sm:text-xs text-muted-foreground">
                   <span>0</span>
-                  <div className="flex-1 mx-2">
+                  <div className="flex-1 mx-1 sm:mx-2">
                     <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                   </div>
                   <span>{maxValue}</span>
