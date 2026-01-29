@@ -48,8 +48,9 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
         className="transform -rotate-90"
         style={{
           filter: showGlow 
-            ? `drop-shadow(0 0 8px rgba(${glowColor}, 0.4)) drop-shadow(0 0 16px rgba(${glowColor}, 0.2))`
-            : 'none'
+            ? `drop-shadow(0 0 8px rgba(${glowColor}, 0.2)) drop-shadow(0 0 16px rgba(${glowColor}, 0.1))`
+            : 'none',
+            overflow: 'visible',
         }}
       >
         {/* Background circle */}
@@ -75,7 +76,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           strokeLinecap="round"
           className={`${color} transition-all duration-1000 ease-out`}
           style={{
-            filter: showGlow ? `drop-shadow(0 0 4px rgba(${glowColor}, 0.6))` : 'none',
+            filter: showGlow ? `drop-shadow(0 0 4px rgba(${glowColor}, 0.4))` : 'none',
           }}
         />
         {/* Inner glow circle */}
@@ -90,9 +91,9 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className={`${color} opacity-30 transition-all duration-1000 ease-out`}
+            className={`${color} opacity-20 transition-all duration-1000 ease-out`}
             style={{
-              filter: 'blur(2px)',
+              filter: 'blur(0.5px)',
             }}
           />
         )}
