@@ -12,45 +12,42 @@ import { useAuth } from "./AuthContext";
 const queryClient = new QueryClient();
 
 
+
+const SKIP_LOGIN = false; // Set to true to skip login (temporary dev bypass)
+
 const App = () => {
-  const { user, loading } = useAuth();
+  const { user: realUser, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
+  const user = SKIP_LOGIN ? { uid: 'dev', email: 'dev@local' } : realUser;
 
+  useEffect(() => {
+    if (!loading && !user) {
+      setShowAuth(true);
+    }
+    // Listen for custom event to open AuthModal from anywhere
+    const handler = () => setShowAuth(true);
+    window.addEventListener("open-auth-modal", handler);
+    return () => window.removeEventListener("open-auth-modal", handler);
+  }, [user, loading]);
 
+  if (loading) return null;
 
-  const SKIP_LOGIN = false; // Set to true to skip login (temporary dev bypass)
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index user={user} />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
-  const App = () => {
-    const { user: realUser, loading } = useAuth();
-    const [showAuth, setShowAuth] = useState(false);
-    const user = SKIP_LOGIN ? { uid: 'dev', email: 'dev@local' } : realUser;
-
-    useEffect(() => {
-      if (!loading && !user) {
-        setShowAuth(true);
-      }
-      // Listen for custom event to open AuthModal from anywhere
-      const handler = () => setShowAuth(true);
-      window.addEventListener("open-auth-modal", handler);
-      return () => window.removeEventListener("open-auth-modal", handler);
-    }, [user, loading]);
-
-    if (loading) return null;
-
-    return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index user={user} />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
-  };
+export default App;
