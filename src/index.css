@@ -83,6 +83,8 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --circle-bg: rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -101,7 +103,9 @@
   }
 
   .light body {
-    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 text-slate-900;
+    /* @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 text-slate-900; */
+    @apply text-slate-900;
+    background: linear-gradient(to right bottom, #b2b8be, #2e69b6, #0a44e2);
   }
 }
 
@@ -135,10 +139,10 @@
   }
 
   .light .glass-button {
-    @apply bg-white/50 hover:bg-white/70 border-white/30;
-    box-shadow: 
-      0 4px 16px 0 rgba(0, 0, 0, 0.05),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+    @apply hover:bg-green-700 border-white/30;
+    /* box-shadow: 
+      0 4px 16px 0 rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.8); */
   }
 }
 
@@ -167,7 +171,7 @@
 * {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
+  transition-duration: 700ms;
 }
 
 /* Custom animations */

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface ChartData {
@@ -12,6 +12,26 @@ interface AQIChartProps {
 }
 
 export const AQIChart: React.FC<AQIChartProps> = ({ data }) => {
+  const [isLightMode, setIsLightMode] = useState(false);
+
+  useEffect(() => {
+    // Check initial theme
+    const checkTheme = () => {
+      setIsLightMode(document.documentElement.classList.contains('light'));
+    };
+    
+    checkTheme();
+    
+    // Watch for theme changes
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+
   const getAQIColor = (aqi: number) => {
     if (aqi <= 50) return '#10b981';
     if (aqi <= 100) return '#f59e0b';
@@ -20,6 +40,13 @@ export const AQIChart: React.FC<AQIChartProps> = ({ data }) => {
     if (aqi <= 300) return '#a855f7';
     return '#dc2626';
   };
+
+  // Theme-aware colors
+  const gridColor = isLightMode ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.1)';
+  const axisColor = isLightMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.6)';
+  const tooltipBg = isLightMode ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.8)';
+  const tooltipBorder = isLightMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
+  const tooltipTextColor = isLightMode ? '#000' : '#fff';
 
   return (
     <div className="w-full h-full">
@@ -41,29 +68,29 @@ export const AQIChart: React.FC<AQIChartProps> = ({ data }) => {
               bottom: 5 
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis 
               dataKey="time" 
-              stroke="rgba(255,255,255,0.6)"
+              stroke={axisColor}
               fontSize={window.innerWidth < 640 ? 10 : 12}
               angle={window.innerWidth < 640 ? -45 : 0}
               textAnchor={window.innerWidth < 640 ? 'end' : 'middle'}
               height={window.innerWidth < 640 ? 60 : 30}
             />
             <YAxis 
-              stroke="rgba(255,255,255,0.6)"
+              stroke={axisColor}
               fontSize={window.innerWidth < 640 ? 10 : 12}
               width={window.innerWidth < 640 ? 35 : 60}
             />
             <Tooltip 
               contentStyle={{
-                backgroundColor: 'rgba(0,0,0,0.8)',
-                border: '1px solid rgba(255,255,255,0.2)',
+                backgroundColor: tooltipBg,
+                border: `1px solid ${tooltipBorder}`,
                 borderRadius: '12px',
                 backdropFilter: 'blur(10px)',
                 fontSize: window.innerWidth < 640 ? '12px' : '14px'
               }}
-              labelStyle={{ color: '#fff' }}
+              labelStyle={{ color: tooltipTextColor }}
             />
             <Line 
               type="monotone" 

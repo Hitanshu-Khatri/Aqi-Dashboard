@@ -61,7 +61,10 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="none"
-          className="text-white/10"
+          className="text-white/10 dark:text-white/10 light:text-gray-300"
+          style={{
+            stroke: 'var(--circle-bg, rgba(255, 255, 255, 0.1))'
+          }}
         />
         {/* Progress circle */}
         <circle

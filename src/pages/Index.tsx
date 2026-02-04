@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -207,10 +206,10 @@ const Index = (props: IndexProps) => {
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
               <p className="flex items-center gap-2">
-                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="truncate">Real-time monitoring from ESP32 sensor</span>
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" color='white'/>
+                <span className="truncate" style={{ color: 'white' }}>Real-time monitoring from ESP32 sensor</span>
               </p>
-              <p className="text-xs truncate">
+              <p className="text-xs truncate" style={{ color: 'white' }}>
                 Last updated: {new Date(sensorData.timestamp).toLocaleString()}
               </p>
             </div>
@@ -281,60 +280,82 @@ const Index = (props: IndexProps) => {
             <TabsTrigger value="history" className="text-xs sm:text-sm">Historical Reports</TabsTrigger>
           </TabsList>
 
+
           <TabsContent value="dashboard" className="space-y-4 md:space-y-6">
-            {/* Main AQI Display */}
-            <Card className={`glass-card p-4 sm:p-6 lg:p-8 ${isOffline ? 'opacity-60' : ''}`}>
-              <div className="text-center space-y-4 md:space-y-6">
-                <div className="relative inline-block">
-                  <div className="relative">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-help">
-                            <CircularProgress
-                              value={sensorData.aqi}
-                              max={300}
-                              size={window.innerWidth < 640 ? 140 : 180}
-                              strokeWidth={window.innerWidth < 640 ? 10 : 12}
-                              color={aqiInfo.color}
-                              showGlow={!isLoading && !isOffline}
-                            >
-                              <div className="text-center">
-                                <div className={`text-3xl sm:text-4xl lg:text-5xl font-bold ${aqiInfo.color} ${isLoading ? 'animate-pulse' : ''}`}>
-                                  {isLoading ? '---' : sensorData.aqi}
+            {/* AQI Display and Map Side by Side */}
+            <div className="flex flex-col xl:flex-row gap-4 md:gap-6">
+              {/* Main AQI Display */}
+              <Card className={`glass-card p-4 sm:p-6 lg:p-8 flex-1 ${isOffline ? 'opacity-60' : ''}`}> 
+                <div className="text-center space-y-4 md:space-y-6">
+                  <div className="relative inline-block">
+                    <div className="relative">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* instead of help i kept pointer as cursor */}
+                            <div className="cursor-pointer">
+                              <CircularProgress
+                                value={sensorData.aqi}
+                                max={300}
+                                size={window.innerWidth < 640 ? 140 : 180}
+                                strokeWidth={window.innerWidth < 640 ? 10 : 12}
+                                color={aqiInfo.color}
+                                showGlow={!isLoading && !isOffline}
+                              >
+                                <div className="text-center">
+                                  <div className={`text-3xl sm:text-4xl lg:text-5xl font-bold ${aqiInfo.color} ${isLoading ? 'animate-pulse' : ''}`}>
+                                    {isLoading ? '---' : sensorData.aqi}
+                                  </div>
+                                  <div className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">AQI</div>
                                 </div>
-                                <div className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">AQI</div>
-                              </div>
-                            </CircularProgress>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" align="center" sideOffset={8} className="max-w-sm">
-                          <div className="space-y-2">
-                            <p className="font-semibold">Air Quality Index (AQI)</p>
-                            <p className="text-sm">A standardized way to measure and report daily air quality. It tells you how clean or unhealthy your air is, and what associated health effects might be of concern.</p>
-                            <div className="text-xs space-y-1">
-                              <div>• 0-50: Good (Green)</div>
-                              <div>• 51-100: Moderate (Yellow)</div>
-                              <div>• 101-150: Unhealthy for Sensitive (Orange)</div>
-                              <div>• 151-200: Unhealthy (Red)</div>
-                              <div>• 201-300: Very Unhealthy (Purple)</div>
-                              <div>• 301+: Hazardous (Maroon)</div>
+                              </CircularProgress>
                             </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" align="center" sideOffset={8} className="max-w-[320px] p-3z-50">
+                            <div className="space-y-1.5">
+                              <p className="font-semibold text-xl">Air Quality Index (AQI)</p>
+                              <p className="text-[12px]">A standardized way to measure and report daily air quality. It tells you how clean or unhealthy your air is, and what associated health effects might be of concern.</p>
+                              <div className="text-xs space-y-1">
+                                <div>• 0-50: Good (Green)</div>
+                                <div>• 51-100: Moderate (Yellow)</div>
+                                <div>• 101-150: Unhealthy for Sensitive (Orange)</div>
+                                <div>• 151-200: Unhealthy (Red)</div>
+                                <div>• 201-300: Very Unhealthy (Purple)</div>
+                                <div>• 301+: Hazardous (Maroon)</div>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <AQIBadge level={aqiInfo.level} color={aqiInfo.color} />
+                    <LocationDisplay className="justify-center" />
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      Air Quality Index measures overall air pollution level. Lower values indicate cleaner air.
+                    </p>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <AQIBadge level={aqiInfo.level} color={aqiInfo.color} />
-                  <LocationDisplay className="justify-center" />
-                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    Air Quality Index measures overall air pollution level. Lower values indicate cleaner air.
-                  </p>
+              </Card>
+              {/* Map on the right */}
+              <Card className="glass-card p-4 sm:p-6 flex-1 xl:max-w-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <h3 className="text-lg sm:text-xl font-semibold">Sensor Location</h3>
+                  <div className="text-xs text-muted-foreground">
+                    Live monitoring point
+                  </div>
                 </div>
-              </div>
-            </Card>
+                <div className="h-64 sm:h-80">
+                  <GoogleMapComponent
+                    aqi={sensorData.aqi}
+                    apiKey={googleMapsApiKey}
+                    onApiKeyChange={handleGoogleMapsApiKeyChange}
+                    onUserLocationChange={(loc) => setUserLocation(loc)}
+                  />
+                </div>
+              </Card>
+            </div>
 
             {/* Metrics Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -376,8 +397,8 @@ const Index = (props: IndexProps) => {
               />
             </div>
 
-            {/* Chart and Map */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
+            {/* Chart */}
+            <div className="mt-4">
               <Card className={`glass-card p-4 sm:p-6 ${isOffline ? 'opacity-60' : ''}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                   <h3 className="text-lg sm:text-xl font-semibold">AQI Trend</h3>
@@ -387,22 +408,6 @@ const Index = (props: IndexProps) => {
                 </div>
                 <div className="h-64 sm:h-80">
                   <AQIChart data={chartData} />
-                </div>
-              </Card>
-              <Card className="glass-card p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                  <h3 className="text-lg sm:text-xl font-semibold">Sensor Location</h3>
-                  <div className="text-xs text-muted-foreground">
-                    Live monitoring point
-                  </div>
-                </div>
-                <div className="h-64 sm:h-80">
-                  <GoogleMapComponent
-                    aqi={sensorData.aqi}
-                    apiKey={googleMapsApiKey}
-                      onApiKeyChange={handleGoogleMapsApiKeyChange}
-                      onUserLocationChange={(loc) => setUserLocation(loc)}
-                  />
                 </div>
               </Card>
             </div>
