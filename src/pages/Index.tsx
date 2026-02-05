@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Settings, MapPin, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { MetricCard } from '@/components/MetricCard';
 import { AQIChart } from '@/components/AQIChart';
-import { GoogleMapComponent } from '@/components/GoogleMapComponent';
+import { GoogleMapComponent } from '@/components/MapComponent';
 import { CircularProgress } from '@/components/CircularProgress';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -59,9 +59,6 @@ const Index = (props: IndexProps) => {
   const [isOffline, setIsOffline] = useState(false);
   const [esp32IP, setEsp32IP] = useState('10.25.62.37');
   const [refreshInterval, setRefreshInterval] = useState(5000);
-  // Prefer Vite env var `VITE_GOOGLE_MAPS_API_KEY`; if not present, fall back to runtime/localStorage entry
-  const envGoogleMapsKey = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-  const [googleMapsApiKey, setGoogleMapsApiKey] = useState<string>(envGoogleMapsKey ?? '');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chartData, setChartData] = useState<Array<{ time: string, aqi: number }>>([]);
@@ -143,12 +140,6 @@ const Index = (props: IndexProps) => {
 
 
   useEffect(() => {
-    // If no env-provided key, load Google Maps API key from localStorage (allows runtime entry)
-    if (!envGoogleMapsKey) {
-      const savedApiKey = localStorage.getItem('googleMapsApiKey');
-      if (savedApiKey) setGoogleMapsApiKey(savedApiKey);
-    }
-
     if (user) {
       fetchSensorData();
       const interval = setInterval(fetchSensorData, refreshInterval);
@@ -168,10 +159,9 @@ const Index = (props: IndexProps) => {
     // eslint-disable-next-line
   }, [esp32IP, refreshInterval, ismockdata, user]);
 
-  const handleGoogleMapsApiKeyChange = (apiKey: string) => {
-    setGoogleMapsApiKey(apiKey);
-    localStorage.setItem('googleMapsApiKey', apiKey);
-  };
+  const handleUserLocationChange = useCallback((loc: { lat: number; lng: number; name?: string } | null) => {
+    setUserLocation(loc);
+  }, []);
 
   const getAQILevel = (aqi: number) => {
     if (aqi <= 50) return { level: 'Good', color: 'text-green-400', bgColor: 'from-green-500/20 to-green-600/20', ringColor: 'from-green-400 to-green-500' };
@@ -349,9 +339,7 @@ const Index = (props: IndexProps) => {
                 <div className="h-64 sm:h-80">
                   <GoogleMapComponent
                     aqi={sensorData.aqi}
-                    apiKey={googleMapsApiKey}
-                    onApiKeyChange={handleGoogleMapsApiKeyChange}
-                    onUserLocationChange={(loc) => setUserLocation(loc)}
+                    onUserLocationChange={handleUserLocationChange}
                   />
                 </div>
               </Card>
