@@ -63,6 +63,7 @@ const Index = (props: IndexProps) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chartData, setChartData] = useState<Array<{ time: string, aqi: number }>>([]);
   const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
+  const [realHistoricalData, setRealHistoricalData] = useState<HistoricalData[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const { toast } = useToast();
   const [ismockdata,setismockdata]   = useState(true);
@@ -83,7 +84,7 @@ const Index = (props: IndexProps) => {
           timestamp: new Date().toISOString()
         };
         setSensorData(mockData);
-
+        console.log('Fetched sensor data:', mockData);
         // Update chart data
         setChartData(prev => {
           const newData = [...prev, {
@@ -93,7 +94,7 @@ const Index = (props: IndexProps) => {
           return newData.slice(-20); // Keep last 20 data points
         });
 
-        // Update historical data
+        // Update historical data (mock)
       setHistoricalData(prev => [...prev, { ...mockData, date: new Date().toISOString() }]);
 
       } else if (!ismockdata) {
@@ -103,7 +104,7 @@ const Index = (props: IndexProps) => {
 
 
         setSensorData(data);
-
+        console.log('Fetched sensor data:', data);
         // Update chart data
         setChartData(prev => {
           const newData = [...prev, {
@@ -113,8 +114,8 @@ const Index = (props: IndexProps) => {
           return newData.slice(-20); // Keep last 20 data points
         });
       
-        // Update historical data
-      setHistoricalData(prev => [...prev, { ...data, date: new Date().toISOString() }]);
+        // Update historical data (real)
+      setRealHistoricalData(prev => [...prev, { ...data, date: new Date().toISOString() }]);
       }
       
 
@@ -148,6 +149,7 @@ const Index = (props: IndexProps) => {
     // If user logs out, clear chart and sensor data
     setChartData([]);
     setHistoricalData([]);
+    setRealHistoricalData([]);
     setSensorData({
       aqi: 0,
       temperature: 0,
@@ -402,7 +404,7 @@ const Index = (props: IndexProps) => {
           </TabsContent>
 
           <TabsContent value="history">
-            <HistoricalReport historicalData={historicalData} />
+            <HistoricalReport historicalData={historicalData} realHistoricalData={realHistoricalData} />
           </TabsContent>
         </Tabs>
       </div>

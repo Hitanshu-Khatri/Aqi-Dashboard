@@ -28,8 +28,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
   const handleSave = () => {
     // Basic IP validation
-    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    if (!ipRegex.test(ip)) {
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/;
+    const localhostRegex = /^(localhost|127\.0\.0\.1)(:\d+)?$/;
+    if (!ipRegex.test(ip) && !localhostRegex.test(ip)) {
       toast({
         title: "Invalid IP Address",
         description: "Please enter a valid IP address format (e.g., 192.168.1.100)",

@@ -17,15 +17,19 @@ interface HistoricalData {
   pm10: number;
 }
 
-export const HistoricalReport: React.FC<{ historicalData: HistoricalData[] }> = ({ historicalData }) => {
+export const HistoricalReport: React.FC<{ historicalData: HistoricalData[]; realHistoricalData?: HistoricalData[] }> = ({ historicalData, realHistoricalData = [] }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [dataSource, setDataSource] = useState<'mock' | 'real'>('mock');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
     from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     to: new Date()
   });
 
+  // Select data based on source
+  const activeData = dataSource === 'mock' ? historicalData : realHistoricalData;
+
   // Filter out invalid dates
-  const validHistoricalData = historicalData.filter(item => isValid(new Date(item.date)));
+  const validHistoricalData = activeData.filter(item => isValid(new Date(item.date)));
 
   // Use the filtered historicalData
   const chartData = validHistoricalData.slice(-7).map(item => ({
@@ -34,11 +38,27 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[] }> = 
   }));
 
   const getMetricTrend = (metric: 'aqi' | 'temperature' | 'humidity' | 'pm2_5' | 'pm10') => {
-    const recent = historicalData.slice(-3);
-    const older = historicalData.slice(-6, -3);
+    const recent = validHistoricalData.slice(-3);
+    const older = validHistoricalData.slice(-6, -3);
+    
+    // Not enough data to calculate trend
+    if (recent.length === 0 || older.length === 0) {
+      return {
+        trend: 'stable',
+        percentage: '0.0'
+      };
+    }
     
     const recentAvg = recent.reduce((sum, item) => sum + item[metric], 0) / recent.length;
     const olderAvg = older.reduce((sum, item) => sum + item[metric], 0) / older.length;
+    
+    // Prevent division by zero
+    if (olderAvg === 0) {
+      return {
+        trend: 'stable',
+        percentage: '0.0'
+      };
+    }
     
     const diff = recentAvg - olderAvg;
     const percentage = Math.abs((diff / olderAvg) * 100);
@@ -66,12 +86,32 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[] }> = 
     </div>
   );
 
-  const latestData = historicalData[historicalData.length - 1];
+  const latestData = validHistoricalData[validHistoricalData.length - 1];
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Date Selection */}
-      <div className="flex gap-2 sm:gap-4 items-center">
+      {/* Data Source Toggle and Date Selection */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-start sm:items-center">
+        <div className="flex gap-2">
+          <Button 
+            variant={dataSource === 'mock' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDataSource('mock')}
+            className="glass-button text-xs sm:text-sm"
+            disabled={historicalData.length === 0}
+          >
+            Mock Data
+          </Button>
+          <Button 
+            variant={dataSource === 'real' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDataSource('real')}
+            className="glass-button text-xs sm:text-sm"
+            disabled={realHistoricalData.length === 0}
+          >
+            Real Data
+          </Button>
+        </div>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="glass-button text-xs sm:text-sm">
