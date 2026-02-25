@@ -158,13 +158,13 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[]; real
           <div>
             <h4 className="text-sm sm:text-base font-medium mb-2">Best Air Quality Day</h4>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              {format(new Date(historicalData.reduce((min, item) => item.aqi < min.aqi ? item : min).date), 'PPP')}
+              {validHistoricalData.length > 0 ? format(new Date(validHistoricalData.reduce((min, item) => item.aqi < min.aqi ? item : min).date), 'PPP') : 'N/A'}
             </p>
           </div>
           <div>
             <h4 className="text-sm sm:text-base font-medium mb-2">Average AQI (30 days)</h4>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              {Math.round(historicalData.reduce((sum, item) => sum + item.aqi, 0) / historicalData.length)}
+              {validHistoricalData.length > 0 ? Math.round(validHistoricalData.reduce((sum, item) => sum + item.aqi, 0) / validHistoricalData.length) : 'N/A'}
             </p>
           </div>
         </div>

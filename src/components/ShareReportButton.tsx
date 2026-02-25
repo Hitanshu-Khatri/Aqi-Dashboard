@@ -2,9 +2,10 @@
 import React from 'react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Share, Download, FileImage, FileText } from 'lucide-react';
+import { Share, Download, FileImage, FileText, FileJson } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { sensorAPI } from '@/services/sensorAPI';
 
 interface ShareReportButtonProps {
   sensorData: {
@@ -23,6 +24,7 @@ export const ShareReportButton: React.FC<ShareReportButtonProps> = ({
   location,
 }) => {
   const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
 
   const getAQILevel = (aqi: number) => {
     if (aqi <= 50) return { level: 'Good', color: '#10b981' };
@@ -186,6 +188,26 @@ Data collected from ESP32 environmental sensor
     });
   };
 
+  const exportAsCSV = async () => {
+    setIsExporting(true);
+    try {
+      await sensorAPI.exportAsCSV();
+      toast({
+        title: "CSV Exported",
+        description: "All historical sensor data has been downloaded as CSV.",
+      });
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export data as CSV. Make sure the backend is running.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -202,6 +224,10 @@ Data collected from ESP32 environmental sensor
         <DropdownMenuItem onClick={exportAsPDF}>
           <FileText className="h-4 w-4 mr-2" />
           Export as Report
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={exportAsCSV} disabled={isExporting}>
+          <FileJson className="h-4 w-4 mr-2" />
+          {isExporting ? 'Exporting...' : 'Export as CSV'}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

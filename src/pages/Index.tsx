@@ -21,6 +21,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@radix
 import { useAuth } from "../AuthContext.jsx";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
+import { sensorAPI } from "@/services/sensorAPI";
 
 interface SensorData {
   aqi: number;
@@ -85,6 +86,24 @@ const Index = (props: IndexProps) => {
         };
         setSensorData(mockData);
         console.log('Fetched sensor data:', mockData);
+
+        // Save mock data to database
+        try {
+          await sensorAPI.saveSensorData({
+            aqi: mockData.aqi,
+            temperature: mockData.temperature,
+            humidity: mockData.humidity,
+            pm2_5: mockData.pm2_5,
+            pm10: mockData.pm10,
+            dataSource: 'mock',
+            location: userLocation ? { latitude: userLocation.lat, longitude: userLocation.lng } : null
+          });
+          console.log('Data saved to database');
+        } catch (dbError) {
+          console.warn('Failed to save to database:', dbError);
+          // Continue operation even if DB save fails
+        }
+
         // Update chart data
         setChartData(prev => {
           const newData = [...prev, {
@@ -95,16 +114,39 @@ const Index = (props: IndexProps) => {
         });
 
         // Update historical data (mock)
-      setHistoricalData(prev => [...prev, { ...mockData, date: new Date().toISOString() }]);
+      setHistoricalData(prev => [...prev, { 
+          aqi: mockData.aqi,
+          temperature: mockData.temperature,
+          humidity: mockData.humidity,
+          pm2_5: mockData.pm2_5,
+          pm10: mockData.pm10,
+          date: new Date().toISOString() 
+        }]);
 
       } else if (!ismockdata) {
         const response = await fetch(`http://${esp32IP}/data`);
         const data = await response.json();
 
-
-
         setSensorData(data);
         console.log('Fetched sensor data:', data);
+
+        // Save real data to database
+        try {
+          await sensorAPI.saveSensorData({
+            aqi: data.aqi,
+            temperature: data.temperature,
+            humidity: data.humidity,
+            pm2_5: data.pm2_5,
+            pm10: data.pm10,
+            dataSource: 'real',
+            location: userLocation ? { latitude: userLocation.lat, longitude: userLocation.lng } : null
+          });
+          console.log('Real data saved to database');
+        } catch (dbError) {
+          console.warn('Failed to save real data to database:', dbError);
+          // Continue operation even if DB save fails
+        }
+
         // Update chart data
         setChartData(prev => {
           const newData = [...prev, {
@@ -115,7 +157,14 @@ const Index = (props: IndexProps) => {
         });
       
         // Update historical data (real)
-      setRealHistoricalData(prev => [...prev, { ...data, date: new Date().toISOString() }]);
+      setRealHistoricalData(prev => [...prev, { 
+          aqi: data.aqi,
+          temperature: data.temperature,
+          humidity: data.humidity,
+          pm2_5: data.pm2_5,
+          pm10: data.pm10,
+          date: new Date().toISOString() 
+        }]);
       }
       
 
