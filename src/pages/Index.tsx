@@ -12,6 +12,7 @@ import { AQIBadge } from '@/components/AQIBadge';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { ShareReportButton } from '@/components/ShareReportButton';
 import { HistoricalReport } from '@/components/HistoricalReport';
+import { AQIPrediction } from '@/components/AQIPrediction';
 import { LocationDisplay } from '@/components/LocationDisplay';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -67,7 +68,39 @@ const Index = (props: IndexProps) => {
   const [realHistoricalData, setRealHistoricalData] = useState<HistoricalData[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const { toast } = useToast();
-  const [ismockdata,setismockdata]   = useState(true);
+  const [ismockdata,setismockdata]   = useState(false);
+
+  const mapApiRowsToHistorical = (rows: any[] = []): HistoricalData[] => {
+    return rows
+      .map((item) => ({
+        date: item.timestamp,
+        aqi: Number(item.aqi),
+        temperature: Number(item.temperature),
+        humidity: Number(item.humidity),
+        pm2_5: Number(item.pm2_5),
+        pm10: Number(item.pm10),
+      }))
+      .filter((item) => !Number.isNaN(item.aqi));
+  };
+
+  const loadHistoricalFromDB = async () => {
+    try {
+      const [realRes, mockRes] = await Promise.all([
+        sensorAPI.fetchSensorData('real', 500),
+        sensorAPI.fetchSensorData('mock', 500),
+      ]);
+
+      const realRows = mapApiRowsToHistorical(realRes?.data || []);
+      const mockRows = mapApiRowsToHistorical(mockRes?.data || []);
+
+      // Backend returns latest first; chart/report expects oldest first.
+      setRealHistoricalData(realRows.reverse());
+      setHistoricalData(mockRows.reverse());
+    } catch (error) {
+      console.warn('Failed to load historical data from backend:', error);
+    }
+  };
+
   const fetchSensorData = async () => {
     try {
       setIsOffline(false);
@@ -191,6 +224,7 @@ const Index = (props: IndexProps) => {
 
   useEffect(() => {
     if (user) {
+      loadHistoricalFromDB();
       fetchSensorData();
       const interval = setInterval(fetchSensorData, refreshInterval);
       return () => clearInterval(interval);
@@ -316,9 +350,10 @@ const Index = (props: IndexProps) => {
 
         {/* Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-full sm:max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-full sm:max-w-lg">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Live Dashboard</TabsTrigger>
             <TabsTrigger value="history" className="text-xs sm:text-sm">Historical Reports</TabsTrigger>
+            <TabsTrigger value="prediction" className="text-xs sm:text-sm">Prediction</TabsTrigger>
           </TabsList>
 
 
@@ -454,6 +489,10 @@ const Index = (props: IndexProps) => {
 
           <TabsContent value="history">
             <HistoricalReport historicalData={historicalData} realHistoricalData={realHistoricalData} />
+          </TabsContent>
+
+          <TabsContent value="prediction">
+            <AQIPrediction realHistoricalData={realHistoricalData} currentAqi={sensorData.aqi} />
           </TabsContent>
         </Tabs>
       </div>

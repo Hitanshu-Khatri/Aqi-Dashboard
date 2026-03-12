@@ -1,8 +1,52 @@
 import express from 'express';
 import { SensorData } from '../models/SensorData.js';
 import { convertToCSV, generateCSVFilename } from '../utils/csvGenerator.js';
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
 const router = express.Router();
+
+// POST /api/predict  — run ML model via Python
+router.post('/predict', (req, res) => {
+  const { aqi, temperature, humidity, pm2_5, pm10, recentAqi, minutesAhead, hour, dow } = req.body;
+
+  if (aqi === undefined || minutesAhead === undefined) {
+    return res.status(400).json({ error: 'aqi and minutesAhead are required' });
+  }
+
+  const scriptPath = path.join(__dirname, '..', 'predict.py');
+  const pythonExe  = process.env.PYTHON_PATH || 'python';
+
+  const py = spawn(pythonExe, [scriptPath]);
+
+  let output = '';
+  let errOut = '';
+
+  py.stdout.on('data', (d) => { output += d.toString(); });
+  py.stderr.on('data', (d) => { errOut += d.toString(); });
+
+  py.on('close', (code) => {
+    try {
+      const result = JSON.parse(output.trim());
+      if (result.error) {
+        return res.status(500).json({ error: result.error });
+      }
+      return res.json(result);
+    } catch {
+      return res.status(500).json({ error: 'Python script error', details: errOut || output });
+    }
+  });
+
+  // Send input as JSON to stdin
+  py.stdin.write(JSON.stringify({ aqi, temperature, humidity, pm2_5, pm10,
+    recentAqi: recentAqi || [aqi],
+    minutesAhead, hour, dow }));
+  py.stdin.end();
+});
 
 // POST - Save sensor data
 router.post('/sensor-data', async (req, res) => {

@@ -9,11 +9,11 @@ export const sensorAPI = {
       const response = await fetch(`${API_BASE_URL}/sensor-data`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json', 
         },
         body: JSON.stringify(sensorData),
       });
-
+ 
       if (!response.ok) {
         throw new Error(`API error: ${response.statusText}`);
       }

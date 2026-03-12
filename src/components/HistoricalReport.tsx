@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -19,7 +19,7 @@ interface HistoricalData {
 
 export const HistoricalReport: React.FC<{ historicalData: HistoricalData[]; realHistoricalData?: HistoricalData[] }> = ({ historicalData, realHistoricalData = [] }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [dataSource, setDataSource] = useState<'mock' | 'real'>('mock');
+  const [dataSource, setDataSource] = useState<'mock' | 'real'>(realHistoricalData.length > 0 ? 'real' : 'mock');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
     from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     to: new Date()
@@ -27,6 +27,12 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[]; real
 
   // Select data based on source
   const activeData = dataSource === 'mock' ? historicalData : realHistoricalData;
+
+  useEffect(() => {
+    if (dataSource === 'mock' && historicalData.length === 0 && realHistoricalData.length > 0) {
+      setDataSource('real');
+    }
+  }, [dataSource, historicalData.length, realHistoricalData.length]);
 
   // Filter out invalid dates
   const validHistoricalData = activeData.filter(item => isValid(new Date(item.date)));
@@ -86,7 +92,9 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[]; real
     </div>
   );
 
-  const latestData = validHistoricalData[validHistoricalData.length - 1];
+  const latestData = validHistoricalData.length > 0
+    ? validHistoricalData[validHistoricalData.length - 1]
+    : null;
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -134,13 +142,19 @@ export const HistoricalReport: React.FC<{ historicalData: HistoricalData[]; real
       {/* Metrics Summary */}
       <Card className="glass-card p-4 sm:p-6">
         <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">7-Day Trends</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          <MetricSummary title="AQI" current={latestData.aqi} trend={getMetricTrend('aqi')} />
-          <MetricSummary title="Temperature (°C)" current={latestData.temperature} trend={getMetricTrend('temperature')} />
-          <MetricSummary title="Humidity (%)" current={latestData.humidity} trend={getMetricTrend('humidity')} />
-          <MetricSummary title="PM2.5 (μg/m³)" current={latestData.pm2_5} trend={getMetricTrend('pm2_5')} />
-          <MetricSummary title="PM10 (μg/m³)" current={latestData.pm10} trend={getMetricTrend('pm10')} />
-        </div>
+        {latestData ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <MetricSummary title="AQI" current={latestData.aqi} trend={getMetricTrend('aqi')} />
+            <MetricSummary title="Temperature (°C)" current={latestData.temperature} trend={getMetricTrend('temperature')} />
+            <MetricSummary title="Humidity (%)" current={latestData.humidity} trend={getMetricTrend('humidity')} />
+            <MetricSummary title="PM2.5 (μg/m³)" current={latestData.pm2_5} trend={getMetricTrend('pm2_5')} />
+            <MetricSummary title="PM10 (μg/m³)" current={latestData.pm10} trend={getMetricTrend('pm10')} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No data available for this source yet. Switch source or wait for incoming readings.
+          </p>
+        )}
       </Card>
 
       {/* Historical Chart */}
