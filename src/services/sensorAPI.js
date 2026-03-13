@@ -119,6 +119,27 @@ export const sensorAPI = {
     }
   },
 
+  // Get model quality metrics for prediction panel
+  getPredictionMetrics: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/predict/metrics`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching prediction metrics:', error);
+      throw error;
+    }
+  },
+
   // Clear all data (for testing)
   clearAllData: async () => {
     try {

@@ -10,7 +10,7 @@ const __dirname  = path.dirname(__filename);
 
 const router = express.Router();
 
-// POST /api/predict  — run ML model via Python
+// POST /api/predict  - run ML model via Python
 router.post('/predict', (req, res) => {
   const { aqi, temperature, humidity, pm2_5, pm10, recentAqi, minutesAhead, hour, dow } = req.body;
 
@@ -19,7 +19,7 @@ router.post('/predict', (req, res) => {
   }
 
   const scriptPath = path.join(__dirname, '..', 'predict.py');
-  const pythonExe  = process.env.PYTHON_PATH || 'python';
+  const pythonExe = process.env.PYTHON_PATH || 'python';
 
   const py = spawn(pythonExe, [scriptPath]);
 
@@ -29,7 +29,7 @@ router.post('/predict', (req, res) => {
   py.stdout.on('data', (d) => { output += d.toString(); });
   py.stderr.on('data', (d) => { errOut += d.toString(); });
 
-  py.on('close', (code) => {
+  py.on('close', () => {
     try {
       const result = JSON.parse(output.trim());
       if (result.error) {
@@ -42,10 +42,44 @@ router.post('/predict', (req, res) => {
   });
 
   // Send input as JSON to stdin
-  py.stdin.write(JSON.stringify({ aqi, temperature, humidity, pm2_5, pm10,
+  py.stdin.write(JSON.stringify({
+    aqi,
+    temperature,
+    humidity,
+    pm2_5,
+    pm10,
     recentAqi: recentAqi || [aqi],
-    minutesAhead, hour, dow }));
+    minutesAhead,
+    hour,
+    dow,
+  }));
   py.stdin.end();
+});
+
+// GET /api/predict/metrics - expose model quality metrics for UI meter
+router.get('/predict/metrics', (_req, res) => {
+  const scriptPath = path.join(__dirname, '..', 'predict.py');
+  const pythonExe = process.env.PYTHON_PATH || 'python';
+
+  const py = spawn(pythonExe, [scriptPath, '--metrics']);
+
+  let output = '';
+  let errOut = '';
+
+  py.stdout.on('data', (d) => { output += d.toString(); });
+  py.stderr.on('data', (d) => { errOut += d.toString(); });
+
+  py.on('close', () => {
+    try {
+      const result = JSON.parse(output.trim());
+      if (result.error) {
+        return res.status(500).json({ error: result.error, details: result.trace || errOut });
+      }
+      return res.json(result);
+    } catch {
+      return res.status(500).json({ error: 'Python metrics error', details: errOut || output });
+    }
+  });
 });
 
 // POST - Save sensor data

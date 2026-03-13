@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Settings, MapPin, RefreshCw, Wifi, WifiOff } from 'lucide-react';
@@ -69,6 +69,7 @@ const Index = (props: IndexProps) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { toast } = useToast();
   const [ismockdata,setismockdata]   = useState(false);
+  const [hasLiveRealData, setHasLiveRealData] = useState(false);
 
   const mapApiRowsToHistorical = (rows: any[] = []): HistoricalData[] => {
     return rows
@@ -108,6 +109,7 @@ const Index = (props: IndexProps) => {
       
 
       if (ismockdata) {
+        setHasLiveRealData(false);
         // Mock data for demonstration
         const mockData: SensorData = {
           aqi: Math.floor(Math.random() * 200) + 50,
@@ -159,6 +161,7 @@ const Index = (props: IndexProps) => {
       } else if (!ismockdata) {
         const response = await fetch(`http://${esp32IP}/data`);
         const data = await response.json();
+        setHasLiveRealData(true);
 
         setSensorData(data);
         console.log('Fetched sensor data:', data);
@@ -207,6 +210,7 @@ const Index = (props: IndexProps) => {
     } catch (error) {
       console.error('Failed to fetch sensor data:', error);
       setIsOffline(true);
+      setHasLiveRealData(false);
       toast({
         title: "Connection Error",
         description: "Failed to fetch data from ESP32. Please check the connection.",
@@ -233,6 +237,7 @@ const Index = (props: IndexProps) => {
     setChartData([]);
     setHistoricalData([]);
     setRealHistoricalData([]);
+    setHasLiveRealData(false);
     setSensorData({
       aqi: 0,
       temperature: 0,
@@ -258,6 +263,11 @@ const Index = (props: IndexProps) => {
   };
 
   const aqiInfo = getAQILevel(sensorData.aqi);
+
+  const lastUpdatedText = useMemo(() => {
+    const d = new Date(sensorData.timestamp);
+    return Number.isNaN(d.getTime()) ? 'Waiting for live data' : d.toLocaleString();
+  }, [sensorData.timestamp]);
 
   if (isLoading && chartData.length === 0) {
     return <LoadingSkeleton />;
@@ -285,7 +295,7 @@ const Index = (props: IndexProps) => {
                 <span className="truncate" style={{ color: 'white' }}>Real-time monitoring from ESP32 sensor</span>
               </p>
               <p className="text-xs truncate" style={{ color: 'white' }}>
-                Last updated: {new Date(sensorData.timestamp).toLocaleString()}
+                Last updated: {lastUpdatedText}
               </p>
             </div>
           </div>
@@ -492,7 +502,11 @@ const Index = (props: IndexProps) => {
           </TabsContent>
 
           <TabsContent value="prediction">
-            <AQIPrediction realHistoricalData={realHistoricalData} currentAqi={sensorData.aqi} />
+            <AQIPrediction
+              realHistoricalData={realHistoricalData}
+              currentAqi={sensorData.aqi}
+              hasLiveRealData={hasLiveRealData && !ismockdata && !isOffline}
+            />
           </TabsContent>
         </Tabs>
       </div>

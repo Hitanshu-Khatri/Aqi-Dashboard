@@ -31,7 +31,62 @@ def lag_value(values, lag):
     return float(values[-1]) if values else 0.0
 
 
+def clamp(value, lo, hi):
+    return max(lo, min(hi, value))
+
+
+def load_saved_model():
+    with open(MODEL_PATH, "rb") as f:
+        return pickle.load(f)
+
+
+def build_metrics_payload(saved):
+    metrics = saved.get("metrics", {}) or {}
+
+    test_mae = float(metrics.get("test_mae", 0.0))
+    test_rmse = float(metrics.get("test_rmse", 0.0))
+    test_r2 = float(metrics.get("test_r2", 0.0))
+    cv_mae = float(metrics.get("cv_mae", test_mae))
+
+    # Heuristic composite score for dashboard display (0-100)
+    mae_score = clamp(100.0 - (test_mae * 2.0), 0.0, 100.0)
+    r2_score_pct = clamp(((test_r2 + 1.0) / 2.0) * 100.0, 0.0, 100.0)
+    stability_score = clamp(100.0 - (abs(test_mae - cv_mae) * 3.0), 0.0, 100.0)
+    overall_score = round(0.50 * mae_score + 0.35 * r2_score_pct + 0.15 * stability_score, 1)
+
+    if overall_score >= 80:
+        rating = "Excellent"
+    elif overall_score >= 65:
+        rating = "Good"
+    elif overall_score >= 50:
+        rating = "Fair"
+    else:
+        rating = "Weak"
+
+    return {
+        "model": saved.get("model_name", "Random Forest"),
+        "score": overall_score,
+        "rating": rating,
+        "metrics": {
+            "test_mae": round(test_mae, 2),
+            "test_rmse": round(test_rmse, 2),
+            "test_r2": round(test_r2, 3),
+            "cv_mae": round(float(metrics.get("cv_mae", 0.0)), 2),
+            "cv_rmse": round(float(metrics.get("cv_rmse", 0.0)), 2),
+            "cv_r2": round(float(metrics.get("cv_r2", 0.0)), 3),
+        },
+        "horizons": saved.get("horizons", []),
+        "maxMinutes": int(saved.get("max_minutes", 180)),
+    }
+
+
 try:
+    saved = load_saved_model()
+
+    if "--metrics" in sys.argv:
+        print(json.dumps(build_metrics_payload(saved)))
+        sys.exit(0)
+
     payload = json.loads(sys.stdin.read() or "{}")
 
     aqi = float(payload["aqi"])
@@ -46,9 +101,6 @@ try:
     recent_aqi = [float(v) for v in payload.get("recentAqi", [aqi])]
     if not recent_aqi:
         recent_aqi = [aqi]
-
-    with open(MODEL_PATH, "rb") as f:
-        saved = pickle.load(f)
 
     model = saved["model"]
     model_name = saved.get("model_name", "Random Forest")
