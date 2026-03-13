@@ -13,6 +13,7 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { ShareReportButton } from '@/components/ShareReportButton';
 import { HistoricalReport } from '@/components/HistoricalReport';
 import { AQIPrediction } from '@/components/AQIPrediction';
+import { AboutProject } from '@/components/AboutProject';
 import { LocationDisplay } from '@/components/LocationDisplay';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -67,6 +68,10 @@ const Index = (props: IndexProps) => {
   const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
   const [realHistoricalData, setRealHistoricalData] = useState<HistoricalData[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showAboutTab, setShowAboutTab] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('showAboutTab') === 'true';
+  });
   const { toast } = useToast();
   const [ismockdata,setismockdata]   = useState(false);
   const [hasLiveRealData, setHasLiveRealData] = useState(false);
@@ -269,6 +274,13 @@ const Index = (props: IndexProps) => {
     return Number.isNaN(d.getTime()) ? 'Waiting for live data' : d.toLocaleString();
   }, [sensorData.timestamp]);
 
+  useEffect(() => {
+    window.localStorage.setItem('showAboutTab', String(showAboutTab));
+    if (!showAboutTab && activeTab === 'about') {
+      setActiveTab('dashboard');
+    }
+  }, [showAboutTab, activeTab]);
+
   if (isLoading && chartData.length === 0) {
     return <LoadingSkeleton />;
   }
@@ -360,10 +372,13 @@ const Index = (props: IndexProps) => {
 
         {/* Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-full sm:max-w-lg">
+          <TabsList className={`grid w-full ${showAboutTab ? 'grid-cols-4 sm:max-w-2xl' : 'grid-cols-3 sm:max-w-lg'} max-w-full`}>
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Live Dashboard</TabsTrigger>
             <TabsTrigger value="history" className="text-xs sm:text-sm">Historical Reports</TabsTrigger>
             <TabsTrigger value="prediction" className="text-xs sm:text-sm">Prediction</TabsTrigger>
+            {showAboutTab && (
+              <TabsTrigger value="about" className="text-xs sm:text-sm">About Us</TabsTrigger>
+            )}
           </TabsList>
 
 
@@ -508,6 +523,12 @@ const Index = (props: IndexProps) => {
               hasLiveRealData={hasLiveRealData && !ismockdata && !isOffline}
             />
           </TabsContent>
+
+          {showAboutTab && (
+            <TabsContent value="about">
+              <AboutProject />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
@@ -516,9 +537,11 @@ const Index = (props: IndexProps) => {
         onOpenChange={setSettingsOpen}
         esp32IP={esp32IP}
         refreshInterval={refreshInterval}
-        onSave={(ip, interval) => {
+        showAboutTab={showAboutTab}
+        onSave={(ip, interval, showAbout) => {
           setEsp32IP(ip);
           setRefreshInterval(interval);
+          setShowAboutTab(showAbout);
         }}
       />
     </div>

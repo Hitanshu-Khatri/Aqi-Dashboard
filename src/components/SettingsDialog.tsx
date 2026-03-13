@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
 interface SettingsDialogProps {
@@ -12,7 +13,8 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   esp32IP: string;
   refreshInterval: number;
-  onSave: (ip: string, interval: number) => void;
+  showAboutTab: boolean;
+  onSave: (ip: string, interval: number, showAbout: boolean) => void;
 }
 
 export const SettingsDialog: React.FC<SettingsDialogProps> = ({
@@ -20,11 +22,19 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   onOpenChange,
   esp32IP,
   refreshInterval,
+  showAboutTab,
   onSave
 }) => {
   const [ip, setIp] = useState(esp32IP);
   const [interval, setInterval] = useState(refreshInterval);
+  const [showAbout, setShowAbout] = useState(showAboutTab);
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    setIp(esp32IP);
+    setInterval(refreshInterval);
+    setShowAbout(showAboutTab);
+  }, [open, esp32IP, refreshInterval, showAboutTab]);
 
   const handleSave = () => {
     // Basic IP validation
@@ -39,7 +49,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
       return;
     }
 
-    onSave(ip, interval);
+    onSave(ip, interval, showAbout);
     onOpenChange(false);
     toast({
       title: "Settings Saved",
@@ -50,6 +60,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   const handleReset = () => {
     setIp('192.168.235.37');
     setInterval(5000);
+    setShowAbout(false);
   };
 
   return (
@@ -91,6 +102,19 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             <p className="text-[10px] sm:text-xs text-muted-foreground">
               How often to fetch new data from the sensor.
             </p>
+          </div>
+
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label className="text-xs sm:text-sm font-medium">About Us Tab</Label>
+            <div className="rounded-lg border border-white/15 bg-white/5 p-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Show About Us tab</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+                  Turn on to show team/project page. Turn off to hide it from navigation.
+                </p>
+              </div>
+              <Switch checked={showAbout} onCheckedChange={setShowAbout} />
+            </div>
           </div>
 
           <div className="space-y-1.5 sm:space-y-2">
