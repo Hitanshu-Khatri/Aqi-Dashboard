@@ -34,7 +34,17 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 HORIZONS_MINUTES = [180]
 TARGET_TOLERANCE = np.timedelta64(40 * 60, "s")
 RANDOM_STATE = 42
-USE_ONLY_REAL = True
+
+
+def env_bool(name: str, default: bool) -> bool:
+    val = os.getenv(name)
+    if val is None:
+        return default
+    return val.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+USE_ONLY_REAL = env_bool("AQI_USE_ONLY_REAL", True)
+SYNTHETIC_WEIGHT = float(os.getenv("AQI_SYNTHETIC_WEIGHT", "0.35"))
 
 
 def iqr_filter(df: pd.DataFrame, column: str, k: float = 1.5) -> pd.DataFrame:
@@ -46,10 +56,13 @@ def iqr_filter(df: pd.DataFrame, column: str, k: float = 1.5) -> pd.DataFrame:
     return df[(df[column] >= lo) & (df[column] <= hi)]
 
 
-def tscv_scores(model, X, y, splitter):
+def tscv_scores(model, X, y, splitter, weights=None):
     maes, rmses, r2s = [], [], []
     for train_idx, val_idx in splitter.split(X):
-        model.fit(X[train_idx], y[train_idx])
+        fit_kwargs = {}
+        if weights is not None:
+            fit_kwargs["ridge__sample_weight"] = weights[train_idx]
+        model.fit(X[train_idx], y[train_idx], **fit_kwargs)
         pred = model.predict(X[val_idx])
         maes.append(mean_absolute_error(y[val_idx], pred))
         rmses.append(np.sqrt(mean_squared_error(y[val_idx], pred)))
@@ -165,6 +178,8 @@ for h_min in HORIZONS_MINUTES:
             rec["minutes_ahead"] = h_min
             rec["aqi_future"] = float(aqi_arr[idx])
             rec["base_timestamp"] = df["timestamp"].iloc[i]
+            rec["base_source"] = str(df["dataSource"].iloc[i])
+            rec["target_source"] = str(df["dataSource"].iloc[idx])
             rows.append(rec)
             matched += 1
     print(f"  +{h_min:3d} min -> {matched} pairs")
@@ -178,12 +193,27 @@ print(f"Total training pairs: {len(expanded)}")
 X = expanded[features].values
 y = expanded["aqi_future"].values
 
+if "base_source" in expanded.columns and "target_source" in expanded.columns:
+    synthetic_pair_mask = (
+        (expanded["base_source"] != "real") | (expanded["target_source"] != "real")
+    )
+    sample_weights = np.where(synthetic_pair_mask.values, SYNTHETIC_WEIGHT, 1.0).astype(float)
+    print(
+        "Sample weighting active: "
+        f"real=1.0 synthetic_pair={SYNTHETIC_WEIGHT} | "
+        f"synthetic pairs: {int(synthetic_pair_mask.sum())}/{len(expanded)}"
+    )
+else:
+    sample_weights = np.ones(len(expanded), dtype=float)
+
 # Time-based split
 time_cut = expanded["base_timestamp"].iloc[int(len(expanded) * 0.8)]
 train_mask = expanded["base_timestamp"] <= time_cut
 
 X_train, X_test = X[train_mask.values], X[~train_mask.values]
 y_train, y_test = y[train_mask.values], y[~train_mask.values]
+w_train = sample_weights[train_mask.values]
+w_test = sample_weights[~train_mask.values]
 
 print(f"Time split cutoff: {time_cut}")
 print(f"Train: {len(X_train)} | Test: {len(X_test)}")
@@ -209,7 +239,7 @@ search = GridSearchCV(
 )
 
 print("Running Ridge alpha tuning...")
-search.fit(X_train, y_train)
+search.fit(X_train, y_train, ridge__sample_weight=w_train)
 best_model = search.best_estimator_
 
 print("Best params:")
@@ -217,8 +247,8 @@ for k, v in search.best_params_.items():
     print(f"  {k}: {v}")
 
 pred = best_model.predict(X_test)
-mae = mean_absolute_error(y_test, pred)
-rmse = np.sqrt(mean_squared_error(y_test, pred))
+mae = mean_absolute_error(y_test, pred, sample_weight=w_test)
+rmse = np.sqrt(mean_squared_error(y_test, pred, sample_weight=w_test))
 r2 = r2_score(y_test, pred)
 print("\nHold-out time test metrics")
 print(f"  MAE : {mae:.2f}")
@@ -230,9 +260,10 @@ cv_metrics = tscv_scores(
         ("scaler", StandardScaler()),
         ("ridge", Ridge(alpha=search.best_params_["ridge__alpha"], random_state=RANDOM_STATE)),
     ]),
-    X,
-    y,
+    X_train,
+    y_train,
     tscv,
+    weights=w_train,
 )
 print("\nTimeSeriesSplit CV metrics")
 print(f"  CV MAE : {cv_metrics['cv_mae']:.2f}")
