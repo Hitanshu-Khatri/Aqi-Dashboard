@@ -3,18 +3,27 @@ Synthetic AQI Data Generator
 -------------------------------
 - Reads real sensor data from CSV
 - Learns statistical patterns (mean, std, correlations, daily cycles)
-- Generates ONE reading per hour continuously over ~33 days
-- This ensures every row has a valid T+6h target for ML training
-- Output: Data/aqi_expanded_800.csv
+- Generates ONE reading per hour continuously
+- Output size is configurable (default: 8000 total rows)
 """
 
+import os
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
 # ── 1. Load real data ──────────────────────────────────────────────────────────
-df = pd.read_csv(r"c:\Users\Admin\AQI drone\Aqi-Dashboard\Data\aqi-drone-dashboard.sensordatas.csv")
-real = df[df['dataSource'] == 'real'].copy()
+INPUT_PATH = os.getenv(
+    "AQI_SOURCE_DATA_PATH",
+    r"c:\Users\Admin\AQI drone\Aqi-Dashboard\Data\aqi-data (16).csv",
+)
+df = pd.read_csv(INPUT_PATH)
+
+if 'dataSource' in df.columns:
+    real = df[df['dataSource'] == 'real'].copy()
+else:
+    real = df.copy()
+
 real = real[real['aqi'] > 0]  # drop broken zero-readings
 
 print(f"Real usable rows: {len(real)}")
@@ -38,8 +47,15 @@ print(mean.to_string())
 print("\nCorrelation matrix:")
 print(corr.round(2).to_string())
 
-LAT  = float(real['location.latitude'].dropna().iloc[0])
-LON  = float(real['location.longitude'].dropna().iloc[0])
+if 'location.latitude' in real.columns and real['location.latitude'].dropna().shape[0] > 0:
+    LAT = float(real['location.latitude'].dropna().iloc[0])
+else:
+    LAT = 28.6139
+
+if 'location.longitude' in real.columns and real['location.longitude'].dropna().shape[0] > 0:
+    LON = float(real['location.longitude'].dropna().iloc[0])
+else:
+    LON = 77.2090
 
 # ── 3. Cholesky decomposition to preserve correlations ────────────────────────
 cov_matrix = corr.values * np.outer(std.values, std.values)  # covariance from corr
@@ -68,11 +84,23 @@ def daily_humidity_offset(hour):
     """Humidity inversely tracks temperature"""
     return -8 * np.sin(np.pi * (hour - 4) / 12) + 2
 
-# ── 5. Generate synthetic timestamps: 1 reading per hour over 33 days ─────────
-# This ensures every row has a valid reading 6 hours later (T+6h always exists)
+# ── 5. Generate synthetic timestamps: 1 reading per hour ──────────────────────
+TARGET_TOTAL_ROWS = int(os.getenv("AQI_TARGET_TOTAL_ROWS", "8000"))
+OUTPUT_PATH = os.getenv(
+    "AQI_EXPANDED_OUTPUT_PATH",
+    r"c:\Users\Admin\AQI drone\Aqi-Dashboard\Data\aqi_expanded_8000.csv",
+)
 
-TOTAL_SYNTHETIC = 800 - len(real)
-print(f"\nGenerating {TOTAL_SYNTHETIC} synthetic hourly rows (real: {len(real)}, target: 800)")
+if TARGET_TOTAL_ROWS < len(real):
+    raise ValueError(
+        f"AQI_TARGET_TOTAL_ROWS ({TARGET_TOTAL_ROWS}) must be >= real rows ({len(real)})"
+    )
+
+TOTAL_SYNTHETIC = TARGET_TOTAL_ROWS - len(real)
+print(
+    f"\nGenerating {TOTAL_SYNTHETIC} synthetic hourly rows "
+    f"(real: {len(real)}, target total: {TARGET_TOTAL_ROWS})"
+)
 
 # Base: start 33 days before the real data so timeline is continuous
 first_real_ts = pd.to_datetime(real['timestamp'].min(), utc=True)
@@ -151,6 +179,5 @@ print("\nColumn stats of final dataset:")
 print(combined[cols].describe().round(2).to_string())
 
 # ── 7. Save ───────────────────────────────────────────────────────────────────
-output_path = r"c:\Users\Admin\AQI drone\Aqi-Dashboard\Data\aqi_expanded_800.csv"
-combined.to_csv(output_path, index=False)
-print(f"\nSaved to: {output_path}")
+combined.to_csv(OUTPUT_PATH, index=False)
+print(f"\nSaved to: {OUTPUT_PATH}")

@@ -569,6 +569,10 @@ export const AQIPrediction: React.FC<AQIPredictionProps> = ({
                            hint="Higher = better (0-1)" />
                 <MetricBox label="CV MAE"     value={String(predictionMetrics.metrics.cv_mae)}
                            hint="Cross-validation" />
+                <MetricBox label="CV RMSE"    value={String(predictionMetrics.metrics.cv_rmse)}
+                           hint="Cross-validation" />
+                <MetricBox label="CV R2"      value={String(predictionMetrics.metrics.cv_r2)}
+                           hint="Cross-validation" />
                 {predictionMetrics.horizons && predictionMetrics.horizons.length > 0 && (
                   <MetricBox label="Trained Horizons"
                              value={predictionMetrics.horizons.map((h) => `${h}m`).join(' | ')}
