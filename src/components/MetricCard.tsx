@@ -79,7 +79,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Card className={`glass-card p-3 sm:p-4 md:p-6 hover:bg-white/15 transition-all duration-300 transform hover:scale-105 hover:shadow-xl group cursor-pointer ${isOffline ? 'opacity-60 grayscale' : ''}`}>
+          <Card className={`glass-card glass-card-glow p-3 sm:p-4 md:p-6 hover:bg-white/15 transition-all duration-300 transform hover:scale-[1.03] hover:shadow-xl group cursor-pointer ${isOffline ? 'opacity-60 grayscale' : ''}`}>
             <div className="flex flex-col items-center space-y-2 sm:space-y-3 md:space-y-4">
               {/* Header with icon and title */}
               <div className="flex items-center gap-2 sm:gap-3 w-full justify-center">
@@ -105,7 +105,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
                   showGlow={!isLoading && !isOffline}
                 >
                   <div className="text-center">
-                    <div className={`text-base sm:text-lg md:text-xl font-bold ${color} ${isLoading ? 'animate-pulse' : ''} transition-all duration-500`}>
+                    <div className={`text-base sm:text-lg md:text-xl font-bold tabular-nums ${color} ${isLoading ? 'animate-pulse' : ''} transition-all duration-500`}>
                       {isLoading ? '--' : value}
                     </div>
                     <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">{unit}</div>
@@ -126,7 +126,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             </div>
           </Card>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-xs">
+        <TooltipContent side="top" sideOffset={8} className="max-w-xs">
           <p className="text-sm">{getTooltipText(title)}</p>
         </TooltipContent>
       </Tooltip>
