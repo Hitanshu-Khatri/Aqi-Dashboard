@@ -7,6 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { sensorAPI } from '@/services/sensorAPI';
+import type { HealthProfile } from '@/components/HealthAdvisoryCard';
+
+interface SettingsPayload {
+  ip: string;
+  interval: number;
+  showAbout: boolean;
+  healthProfile: HealthProfile;
+  alertsEnabled: boolean;
+  alertThreshold: number;
+}
 
 interface SettingsDialogProps {
   open: boolean;
@@ -14,7 +25,10 @@ interface SettingsDialogProps {
   esp32IP: string;
   refreshInterval: number;
   showAboutTab: boolean;
-  onSave: (ip: string, interval: number, showAbout: boolean) => void;
+  healthProfile: HealthProfile;
+  alertsEnabled: boolean;
+  alertThreshold: number;
+  onSave: (settings: SettingsPayload) => void;
 }
 
 export const SettingsDialog: React.FC<SettingsDialogProps> = ({
@@ -23,18 +37,28 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   esp32IP,
   refreshInterval,
   showAboutTab,
-  onSave
+  healthProfile,
+  alertsEnabled,
+  alertThreshold,
+  onSave,
 }) => {
   const [ip, setIp] = useState(esp32IP);
   const [interval, setInterval] = useState(refreshInterval);
   const [showAbout, setShowAbout] = useState(showAboutTab);
+  const [profile, setProfile] = useState<HealthProfile>(healthProfile);
+  const [enabledAlerts, setEnabledAlerts] = useState(alertsEnabled);
+  const [threshold, setThreshold] = useState(alertThreshold);
+  const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
 
   React.useEffect(() => {
     setIp(esp32IP);
     setInterval(refreshInterval);
     setShowAbout(showAboutTab);
-  }, [open, esp32IP, refreshInterval, showAboutTab]);
+    setProfile(healthProfile);
+    setEnabledAlerts(alertsEnabled);
+    setThreshold(alertThreshold);
+  }, [open, esp32IP, refreshInterval, showAboutTab, healthProfile, alertsEnabled, alertThreshold]);
 
   const handleSave = () => {
     // Basic IP validation
@@ -49,7 +73,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
       return;
     }
 
-    onSave(ip, interval, showAbout);
+    onSave({
+      ip,
+      interval,
+      showAbout,
+      healthProfile: profile,
+      alertsEnabled: enabledAlerts,
+      alertThreshold: threshold,
+    });
     onOpenChange(false);
     toast({
       title: "Settings Saved",
@@ -61,16 +92,40 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     setIp('192.168.235.37');
     setInterval(5000);
     setShowAbout(false);
+    setProfile('general');
+    setEnabledAlerts(true);
+    setThreshold(150);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await sensorAPI.exportAsCSV();
+      toast({
+        title: "Export Ready",
+        description: "CSV download started.",
+      });
+    } catch (err) {
+      toast({
+        title: "Export Failed",
+        description: "Could not reach backend. Is the server running?",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card border-white/20 max-w-[95vw] sm:max-w-md">
+      <DialogContent className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl max-w-[95vw] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-semibold">Dashboard Settings</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 sm:space-y-6 py-3 sm:py-4">
-          <div className="space-y-1.5 sm:space-y-2">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-3 sm:py-4">
+          {/* ── Connection ── */}
+          <div className="space-y-1.5">
             <Label htmlFor="esp32-ip" className="text-xs sm:text-sm font-medium">ESP32 IP Address</Label>
             <Input
               id="esp32-ip"
@@ -80,11 +135,12 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               className="bg-white/5 border-white/20 focus:border-blue-400/50 text-sm"
             />
             <p className="text-[10px] sm:text-xs text-muted-foreground">
-              Enter the IP address of your ESP32 device for real-time data.
+              IP of your ESP32 device for real-time data.
             </p>
           </div>
 
-          <div className="space-y-1.5 sm:space-y-2">
+          {/* ── Refresh ── */}
+          <div className="space-y-1.5">
             <Label htmlFor="refresh-interval" className="text-xs sm:text-sm font-medium">Refresh Interval</Label>
             <Select value={interval.toString()} onValueChange={(value) => setInterval(parseInt(value))}>
               <SelectTrigger className="bg-white/5 border-white/20 text-sm">
@@ -100,51 +156,91 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </SelectContent>
             </Select>
             <p className="text-[10px] sm:text-xs text-muted-foreground">
-              How often to fetch new data from the sensor.
+              How often to fetch new sensor data.
             </p>
           </div>
 
-          <div className="space-y-1.5 sm:space-y-2">
-            <Label className="text-xs sm:text-sm font-medium">About Us Tab</Label>
-            <div className="rounded-lg border border-white/15 bg-white/5 p-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Show About Us tab</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-                  Turn on to show team/project page. Turn off to hide it from navigation.
-                </p>
+          {/* ── Health Profile ── */}
+          <div className="space-y-1.5">
+            <Label className="text-xs sm:text-sm font-medium">Health Profile</Label>
+            <Select value={profile} onValueChange={(v) => setProfile(v as HealthProfile)}>
+              <SelectTrigger className="bg-white/5 border-white/20 text-sm">
+                <SelectValue placeholder="Select profile" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">General population</SelectItem>
+                <SelectItem value="sensitive">Sensitive (asthma / heart)</SelectItem>
+                <SelectItem value="child">Child</SelectItem>
+                <SelectItem value="elderly">Elderly</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
+              Tailors health advisory to your risk level.
+            </p>
+          </div>
+
+          {/* ── AQI Alerts ── */}
+          <div className="space-y-1.5">
+            <Label className="text-xs sm:text-sm font-medium">AQI Alerts</Label>
+            <div className="rounded-lg border border-white/15 bg-white/5 p-3 space-y-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium leading-tight">Enable threshold alerts</p>
+                <Switch checked={enabledAlerts} onCheckedChange={setEnabledAlerts} />
               </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="alert-threshold" className="text-[11px] text-muted-foreground whitespace-nowrap">
+                  Alert when AQI &gt;
+                </Label>
+                <Input
+                  id="alert-threshold"
+                  type="number"
+                  min={10}
+                  max={500}
+                  value={threshold}
+                  onChange={(e) => setThreshold(Math.max(10, Math.min(500, parseInt(e.target.value) || 150)))}
+                  disabled={!enabledAlerts}
+                  className="bg-white/5 border-white/20 text-sm h-8"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── About Tab toggle ── */}
+          <div className="space-y-1.5">
+            <Label className="text-xs sm:text-sm font-medium">About Us Tab</Label>
+            <div className="rounded-lg border border-white/15 bg-white/5 p-3 flex items-center justify-between gap-3">
+              <p className="text-sm font-medium leading-tight">Show About Us tab in navigation</p>
               <Switch checked={showAbout} onCheckedChange={setShowAbout} />
             </div>
           </div>
 
-          <div className="space-y-1.5 sm:space-y-2">
+          {/* ── Data Export ── */}
+          <div className="space-y-1.5">
             <Label className="text-xs sm:text-sm font-medium">Data Export</Label>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full glass-button text-xs sm:text-sm"
-              onClick={() => {
-                toast({
-                  title: "Export Feature",
-                  description: "Data export functionality coming soon!",
-                });
-              }}
+              onClick={handleExport}
+              disabled={exporting}
             >
-              Export Current Data
+              {exporting ? 'Exporting…' : 'Export Current Data (CSV)'}
             </Button>
             <p className="text-[10px] sm:text-xs text-muted-foreground">
-              Download current readings as CSV or PDF report.
+              Download all readings as CSV (requires backend).
             </p>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-3">
-          <Button variant="outline" onClick={handleReset} className="glass-button text-xs sm:text-sm w-full sm:w-auto">
+
+        {/* ── Footer actions ── */}
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <Button variant="outline" onClick={handleReset} className="glass-button text-xs sm:text-sm">
             Reset to Default
           </Button>
-          <div className="flex gap-2 flex-1 sm:flex-initial">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-initial text-xs sm:text-sm">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="text-xs sm:text-sm">
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 flex-1 sm:flex-initial text-xs sm:text-sm">
+            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-xs sm:text-sm">
               Save Changes
             </Button>
           </div>

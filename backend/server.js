@@ -37,7 +37,7 @@ app.use('/api', sensorRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'OK',
     message: 'AQI Drone Backend is running',
     timestamp: new Date().toISOString()
@@ -46,7 +46,7 @@ app.get('/health', (req, res) => {
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'AQI Drone Dashboard Backend API',
     version: '1.0.0',
     endpoints: {

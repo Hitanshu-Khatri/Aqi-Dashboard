@@ -10,17 +10,18 @@ type Member = {
 
 const members: Member[] = [
   {
-    name: 'Jay Patwa',
-    role: 'Founder, Dashboard and ML Lead',
-    contribution:
-      'Led the complete project direction, designed the dashboard experience, and developed the AQI prediction and machine learning workflow.',
-  },
-  {
     name: 'Hitanshu Khatri',
     role: 'Drone Support and Integration',
     contribution:
-      'Supported drone-side integration and helped align sensing flow between drone hardware and dashboard features.',
+      'Led the complete project direction, designed the dashboard experience, and Supported drone-side integration and helped align sensing flow between drone hardware and dashboard features.',
   },
+  {
+    name: 'Jay Patwa',
+    role: 'ML Lead',
+    contribution:
+      'developed the AQI prediction and machine learning workflow.',
+  },
+  
   {
     name: 'Parva Sheth',
     role: 'Web Support and Drone Hardware',

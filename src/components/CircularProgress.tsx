@@ -46,9 +46,11 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
         width={size}
         height={size}
         className="transform -rotate-90"
+        role="img"
+        aria-label={`Progress: ${Math.round(progress * 100)}%`}
         style={{
-          filter: showGlow 
-            ? `drop-shadow(0 0 8px rgba(${glowColor}, 0.2)) drop-shadow(0 0 16px rgba(${glowColor}, 0.1))`
+          filter: showGlow
+            ? `drop-shadow(0 0 10px rgba(${glowColor}, 0.25)) drop-shadow(0 0 20px rgba(${glowColor}, 0.15)) drop-shadow(0 0 40px rgba(${glowColor}, 0.08))`
             : 'none',
             overflow: 'visible',
         }}

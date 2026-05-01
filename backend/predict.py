@@ -147,6 +147,107 @@ try:
         "minutesAhead": int(minutes_ahead),
     }
 
+    # Feature importance / contribution analysis for the explainability panel.
+    # We combine global importance (how much the feature matters overall) with
+    # local deviation (how far this row is from the training-mean proxy).
+    try:
+        importances = None
+        if hasattr(model, "feature_importances_"):
+            importances = np.array(model.feature_importances_, dtype=float)
+        elif hasattr(model, "coef_"):
+            coef = np.array(model.coef_, dtype=float).flatten()
+            if coef.size == len(features):
+                importances = np.abs(coef)
+
+        baseline_means = saved.get("feature_means") or {}
+        baseline_stds = saved.get("feature_stds") or {}
+
+        # Dynamic baselines derived from the live request itself, so we still
+        # produce useful contributions when the pickle lacks feature_means.
+        recent_mean = float(np.mean(recent_aqi)) if recent_aqi else aqi
+        recent_std = float(np.std(recent_aqi)) if len(recent_aqi) > 1 else 0.0
+        if recent_std < 1.0:
+            recent_std = max(1.0, abs(recent_mean) * 0.1)
+
+        dynamic_baseline = {
+            "aqi": recent_mean,
+            "aqi_roll3": recent_mean,
+            "aqi_roll6": recent_mean,
+            "aqi_roll12": recent_mean,
+            "aqi_lag1": recent_mean,
+            "aqi_lag3": recent_mean,
+            "aqi_lag6": recent_mean,
+            "aqi_trend": 0.0,
+            "pm2_5": pm2_5 * 0.85,
+            "pm10": pm10 * 0.85,
+            "pm2_5_roll3": pm2_5 * 0.85,
+            "pm10_roll3": pm10 * 0.85,
+            "temperature": temperature,
+            "temperature_roll3": temperature,
+            "humidity": humidity,
+            "humidity_roll3": humidity,
+        }
+        dynamic_std = {
+            "aqi": recent_std,
+            "aqi_roll3": recent_std,
+            "aqi_roll6": recent_std,
+            "aqi_roll12": recent_std,
+            "aqi_lag1": recent_std,
+            "aqi_lag3": recent_std,
+            "aqi_lag6": recent_std,
+            "aqi_trend": max(1.0, recent_std * 0.5),
+            "pm2_5": max(1.0, pm2_5 * 0.25),
+            "pm10": max(1.0, pm10 * 0.25),
+            "pm2_5_roll3": max(1.0, pm2_5 * 0.25),
+            "pm10_roll3": max(1.0, pm10 * 0.25),
+            "temperature": 3.0,
+            "temperature_roll3": 3.0,
+            "humidity": 10.0,
+            "humidity_roll3": 10.0,
+        }
+
+        if importances is not None and importances.size == len(features):
+            totals = []
+            for i, name in enumerate(features):
+                val = float(feature_map.get(name, 0.0))
+                # Prefer training-time baseline, otherwise fall back to dynamic.
+                if name in baseline_means:
+                    base = float(baseline_means[name])
+                elif name in dynamic_baseline:
+                    base = float(dynamic_baseline[name])
+                else:
+                    base = val
+                if name in baseline_stds and float(baseline_stds[name]) > 0:
+                    std = float(baseline_stds[name])
+                elif name in dynamic_std and dynamic_std[name] > 0:
+                    std = float(dynamic_std[name])
+                else:
+                    std = 1.0
+
+                deviation = (val - base) / std if std > 0 else 0.0
+                # Signed local contribution from deviation
+                local = float(np.tanh(deviation))
+                # If deviation is near zero, fall back to pure importance so the
+                # panel still ranks useful features for a stable reading.
+                if abs(local) < 0.05:
+                    local = 0.05 if val >= base else -0.05
+                contribution = float(importances[i]) * local
+                totals.append({
+                    "feature": name,
+                    "importance": round(float(importances[i]), 4),
+                    "value": round(val, 2),
+                    "baseline": round(base, 2),
+                    "deviation": round(deviation, 3),
+                    "contribution": round(contribution, 4),
+                })
+            # Sort by importance when the live row is near baseline (quiet
+            # moments), otherwise by signed contribution magnitude.
+            totals.sort(key=lambda r: (abs(r["contribution"]), r["importance"]), reverse=True)
+            result["topFeatures"] = totals[:5]
+    except Exception:
+        # Never let explainability errors break the core prediction
+        pass
+
     # Optional CI if the model is a RandomForest with tree estimators
     if hasattr(model, "estimators_"):
         tree_preds = np.array([tree.predict(X)[0] for tree in model.estimators_], dtype=float)
@@ -154,6 +255,11 @@ try:
         ci_high = float(np.quantile(tree_preds, 0.90))
         result["ciLowQ10"] = round(max(0.0, min(500.0, ci_low)), 1)
         result["ciHighQ90"] = round(max(0.0, min(500.0, ci_high)), 1)
+
+        # Confidence proxy: 100 - normalized interval width
+        interval = max(1.0, ci_high - ci_low)
+        confidence = float(max(20.0, min(99.0, 100.0 - interval * 0.6)))
+        result["confidence"] = round(confidence, 1)
 
     print(json.dumps(result))
     sys.exit(0)

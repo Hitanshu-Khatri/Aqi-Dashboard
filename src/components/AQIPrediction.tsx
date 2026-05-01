@@ -11,6 +11,14 @@ import {
 } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { sensorAPI } from '@/services/sensorAPI';
+import { ExplainPanel, type FeatureContribution } from '@/components/ExplainPanel';
+import { useAnimatedNumber } from '@/hooks/use-animated-number';
+
+interface PredictionResponse {
+  prediction: number;
+  topFeatures?: FeatureContribution[];
+  confidence?: number;
+}
 
 interface HistoricalData {
   date: string;
@@ -66,8 +74,8 @@ function predictAtMinutes(history: HistoricalData[], minutesAhead: number): numb
 async function fetchMLPrediction(
   history: HistoricalData[],
   minutesAhead: number
-): Promise<number> {
-  if (history.length === 0) return 0;
+): Promise<PredictionResponse> {
+  if (history.length === 0) return { prediction: 0 };
   const sorted = [...history].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
@@ -92,7 +100,11 @@ async function fetchMLPrediction(
   });
   if (!res.ok) throw new Error('API error');
   const data = await res.json();
-  return Math.round(data.prediction);
+  return {
+    prediction: Math.round(data.prediction),
+    topFeatures: data.topFeatures,
+    confidence: data.confidence,
+  };
 }
 
 // Horizons the model was actually trained on.
@@ -159,14 +171,14 @@ function SpeedometerGauge({
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
   }, [score, loading]);
 
-  const cx = 100, cy = 108, r = 82;
+  const cx = 110, cy = 120, r = 86;
   const color = scoreHexColor(display);
   const angle = Math.PI * (1 - display / 100);
   const ex = cx + r * Math.cos(angle);
   const ey = cy - r * Math.sin(angle);
-  const laf = display > 50 ? 1 : 0;
-  const nx = cx + 66 * Math.cos(angle);
-  const ny = cy - 66 * Math.sin(angle);
+  // Score arc always spans < 180°, so large-arc-flag must stay 0.
+  const nx = cx + (r - 18) * Math.cos(angle);
+  const ny = cy - (r - 18) * Math.sin(angle);
 
   const zones = [
     { from: 0,  to: 50,  fill: 'rgba(239,68,68,0.22)' },
@@ -176,92 +188,136 @@ function SpeedometerGauge({
   ];
 
   return (
-    <svg viewBox="0 0 200 128" className="w-full max-w-xs mx-auto select-none">
+    <svg
+      viewBox="0 0 220 170"
+      className="w-full max-w-[260px] mx-auto select-none overflow-visible"
+    >
       <defs>
         <filter id="spd-glow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="2.5" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
+        <linearGradient id="spd-arc-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={color} stopOpacity="0.55" />
+          <stop offset="100%" stopColor={color} stopOpacity="1" />
+        </linearGradient>
       </defs>
 
-      {/* Track shadow */}
-      <path d={`M ${cx - r},${cy} A ${r},${r} 0 0 0 ${cx + r},${cy}`}
-        fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="18" strokeLinecap="round" />
       {/* Track base */}
-      <path d={`M ${cx - r},${cy} A ${r},${r} 0 0 0 ${cx + r},${cy}`}
-        fill="none" stroke="rgba(148,163,184,0.10)" strokeWidth="16" strokeLinecap="round" />
+      <path
+        d={`M ${cx - r},${cy} A ${r},${r} 0 0 1 ${cx + r},${cy}`}
+        fill="none"
+        stroke="rgba(148,163,184,0.10)"
+        strokeWidth="14"
+        strokeLinecap="round"
+      />
 
       {/* Colored zone bands */}
       {zones.map(({ from, to, fill }) => {
         const a1 = Math.PI * (1 - from / 100);
         const a2 = Math.PI * (1 - to / 100);
-        const x1 = (cx + r * Math.cos(a1)).toFixed(1);
-        const y1 = (cy - r * Math.sin(a1)).toFixed(1);
-        const x2 = (cx + r * Math.cos(a2)).toFixed(1);
-        const y2 = (cy - r * Math.sin(a2)).toFixed(1);
+        const x1 = (cx + r * Math.cos(a1)).toFixed(2);
+        const y1 = (cy - r * Math.sin(a1)).toFixed(2);
+        const x2 = (cx + r * Math.cos(a2)).toFixed(2);
+        const y2 = (cy - r * Math.sin(a2)).toFixed(2);
         return (
-          <path key={from}
-            d={`M ${x1},${y1} A ${r},${r} 0 0 0 ${x2},${y2}`}
-            fill="none" stroke={fill} strokeWidth="16" />
+          <path
+            key={from}
+            d={`M ${x1},${y1} A ${r},${r} 0 0 1 ${x2},${y2}`}
+            fill="none"
+            stroke={fill}
+            strokeWidth="14"
+          />
         );
       })}
 
       {/* Animated score arc */}
       {display > 0.5 && (
         <path
-          d={`M ${cx - r},${cy} A ${r},${r} 0 ${laf} 0 ${ex.toFixed(1)},${ey.toFixed(1)}`}
-          fill="none" stroke={color} strokeWidth="16"
-          strokeLinecap="round" filter="url(#spd-glow)" opacity={0.90} />
+          d={`M ${(cx - r).toFixed(2)},${cy} A ${r},${r} 0 0 1 ${ex.toFixed(2)},${ey.toFixed(2)}`}
+          fill="none"
+          stroke="url(#spd-arc-grad)"
+          strokeWidth="14"
+          strokeLinecap="round"
+          filter="url(#spd-glow)"
+        />
       )}
 
       {/* Tick marks + labels */}
       {[0, 25, 50, 75, 100].map((pct) => {
         const a = Math.PI * (1 - pct / 100);
-        const ix = (cx + (r - 9)  * Math.cos(a)).toFixed(1);
-        const iy = (cy - (r - 9)  * Math.sin(a)).toFixed(1);
-        const ox = (cx + (r + 1)  * Math.cos(a)).toFixed(1);
-        const oy = (cy - (r + 1)  * Math.sin(a)).toFixed(1);
-        const lx = (cx + (r - 23) * Math.cos(a)).toFixed(1);
-        const ly = (cy - (r - 23) * Math.sin(a)).toFixed(1);
+        const ix = (cx + (r - 12) * Math.cos(a)).toFixed(2);
+        const iy = (cy - (r - 12) * Math.sin(a)).toFixed(2);
+        const ox = (cx + (r + 2) * Math.cos(a)).toFixed(2);
+        const oy = (cy - (r + 2) * Math.sin(a)).toFixed(2);
+        const lx = (cx + (r + 12) * Math.cos(a)).toFixed(2);
+        const ly = (cy - (r + 12) * Math.sin(a)).toFixed(2);
         return (
           <g key={pct}>
-            <line x1={ix} y1={iy} x2={ox} y2={oy}
-              stroke="rgba(148,163,184,0.5)" strokeWidth="1.5" />
-            <text x={lx} y={ly} fontSize="7"
-              fill="rgba(148,163,184,0.65)" textAnchor="middle" dominantBaseline="middle">
+            <line
+              x1={ix} y1={iy} x2={ox} y2={oy}
+              stroke="rgba(148,163,184,0.55)" strokeWidth="1.5"
+            />
+            <text
+              x={lx} y={ly}
+              fontSize="9"
+              fill="rgba(148,163,184,0.7)"
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
               {pct}
             </text>
           </g>
         );
       })}
 
-      {/* Needle shadow */ }
-      <line x1={cx} y1={cy}
-        x2={(nx + 1.5).toFixed(1)} y2={(ny + 1.5).toFixed(1)}
-        stroke="rgba(0,0,0,0.4)" strokeWidth="3" strokeLinecap="round" />
+      {/* Needle shadow */}
+      <line
+        x1={cx} y1={cy}
+        x2={(nx + 1.2).toFixed(2)} y2={(ny + 1.2).toFixed(2)}
+        stroke="rgba(0,0,0,0.45)" strokeWidth="3" strokeLinecap="round"
+      />
       {/* Needle */}
-      <line x1={cx} y1={cy}
-        x2={nx.toFixed(1)} y2={ny.toFixed(1)}
-        stroke="white" strokeWidth="2.5" strokeLinecap="round"
-        filter="url(#spd-glow)" />
+      <line
+        x1={cx} y1={cy}
+        x2={nx.toFixed(2)} y2={ny.toFixed(2)}
+        stroke="white" strokeWidth="2.2" strokeLinecap="round"
+        filter="url(#spd-glow)"
+      />
 
       {/* Hub */}
       <circle cx={cx} cy={cy} r="7" fill={color} filter="url(#spd-glow)" />
       <circle cx={cx} cy={cy} r="3.5" fill="white" />
 
-      {/* Score number */}
-      <text x={cx} y={cy - 28} textAnchor="middle"
-        fontSize="25" fontWeight="bold" fill={color}
-        fontFamily="monospace">
-        {Math.round(display)}%
-      </text>
-      <text x={cx} y={cy - 14} textAnchor="middle"
-        fontSize="8" fill="rgba(148,163,184,0.65)" letterSpacing="1.2">
+      {/* MODEL SCORE label above the number so it never collides with the arc */}
+      <text
+        x={cx} y={cy + 28}
+        textAnchor="middle"
+        fontSize="8"
+        fill="rgba(148,163,184,0.65)"
+        letterSpacing="1.4"
+      >
         MODEL SCORE
       </text>
+      {/* Score number */}
+      <text
+        x={cx} y={cy + 48}
+        textAnchor="middle"
+        fontSize="26"
+        fontWeight="800"
+        fill={color}
+        fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+      >
+        {Math.round(display)}%
+      </text>
       {/* Rating */}
-      <text x={cx} y={cy + 18} textAnchor="middle"
-        fontSize="11" fontWeight="700" fill={color}>
+      <text
+        x={cx} y={cy + 62}
+        textAnchor="middle"
+        fontSize="11"
+        fontWeight="700"
+        fill={color}
+      >
         {loading ? '...' : rating}
       </text>
     </svg>
@@ -269,13 +325,27 @@ function SpeedometerGauge({
 }
 
 // â”€â”€ Custom chart tooltip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
+interface ChartTooltipPayloadEntry {
+  name?: string;
+  value?: number | null;
+  color?: string;
+}
+
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: ChartTooltipPayloadEntry[];
+  label?: string;
+}) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-gray-950/95 border border-white/10 rounded-xl px-3 py-2.5
                     shadow-2xl text-sm backdrop-blur-md min-w-[140px]">
       <p className="text-gray-400 text-[11px] font-medium mb-1.5 tracking-wide">{label}</p>
-      {payload.map((entry: any) =>
+      {payload.map((entry) =>
         entry.value != null ? (
           <div key={entry.name} className="flex items-center gap-2 mt-1">
             <span className="w-2 h-2 rounded-full flex-shrink-0"
@@ -315,8 +385,13 @@ export const AQIPrediction: React.FC<AQIPredictionProps> = ({
   const [forecast3h, setForecast3h] = useState<number | null>(null);
   const [loading3h, setLoading3h] = useState(false);
   const [usingML, setUsingML] = useState(false);
+  const [topFeatures, setTopFeatures] = useState<FeatureContribution[] | undefined>(undefined);
+  const [confidence, setConfidence] = useState<number | undefined>(undefined);
   const [predictionMetrics, setPredictionMetrics] = useState<PredictionMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+
+  const animatedCurrentAqi = useAnimatedNumber(currentAqi);
+  const animatedForecast = useAnimatedNumber(forecast3h ?? currentAqi);
 
   // Fetch 3-hour ML prediction whenever live data changes
   const fetch3h = useCallback(async () => {
@@ -327,11 +402,15 @@ export const AQIPrediction: React.FC<AQIPredictionProps> = ({
     setLoading3h(true);
     try {
       const pred = await fetchMLPrediction(realHistoricalData, PREDICT_HORIZON);
-      setForecast3h(pred);
+      setForecast3h(pred.prediction);
+      setTopFeatures(pred.topFeatures);
+      setConfidence(pred.confidence);
       setUsingML(true);
     } catch {
-      // Backend unreachable â€” fallback to formula
+      // Backend unreachable — fallback to formula
       setForecast3h(predictAtMinutes(sorted, PREDICT_HORIZON));
+      setTopFeatures(undefined);
+      setConfidence(undefined);
       setUsingML(false);
     } finally {
       setLoading3h(false);
@@ -417,10 +496,10 @@ export const AQIPrediction: React.FC<AQIPredictionProps> = ({
       {/* Top stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Current */}
-        <Card className="glass-card p-5">
+        <Card className="glass-card glass-card-glow p-5">
           <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Current AQI</div>
           <div className="text-5xl font-black mt-1 tabular-nums" style={{ color: aqiColor(currentAqi) }}>
-            {currentAqi}
+            {animatedCurrentAqi}
           </div>
           <div className="text-sm mt-1.5 font-semibold" style={{ color: aqiColor(currentAqi) }}>
             {aqiLevel(currentAqi)}
@@ -428,7 +507,7 @@ export const AQIPrediction: React.FC<AQIPredictionProps> = ({
         </Card>
 
         {/* 3-hour forecast */}
-        <Card className="glass-card p-5">
+        <Card className="glass-card glass-card-glow p-5">
           <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-2">
             Predicted AQI in 3 hours
             {usingML && (
@@ -439,7 +518,7 @@ export const AQIPrediction: React.FC<AQIPredictionProps> = ({
           </div>
           <div className="text-5xl font-black mt-1 tabular-nums"
             style={{ color: forecast3h != null ? aqiColor(forecast3h) : 'rgba(148,163,184,0.5)' }}>
-            {forecast3h ?? currentAqi}
+            {animatedForecast}
           </div>
           {(forecast3h != null || loading3h) && (
             <div className="text-sm mt-1.5 flex items-center gap-2">
@@ -535,6 +614,17 @@ export const AQIPrediction: React.FC<AQIPredictionProps> = ({
           </ResponsiveContainer>
         </div>
       </Card>
+
+      {/* Explainability panel */}
+      {forecast3h != null && (
+        <ExplainPanel
+          topFeatures={topFeatures}
+          confidence={confidence}
+          prediction={forecast3h}
+          currentAqi={currentAqi}
+          usingML={usingML}
+        />
+      )}
 
       {/* Speedometer + metrics */}
       <Card className="glass-card p-5">
